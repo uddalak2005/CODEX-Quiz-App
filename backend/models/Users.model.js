@@ -7,7 +7,8 @@ const userSchema = new mongoose.Schema({
     },
     regdNo: {
         type: String,
-        required: true
+        required: true,
+        unique: true
     },
     role: {
         type: String,
@@ -16,7 +17,7 @@ const userSchema = new mongoose.Schema({
     },
     year: {
         type: Number,
-        enum: [1, 2],
+        enum: [0, 1, 2],
         required: true
     },
     email: {
@@ -25,6 +26,20 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
     },
+    questionsProvided: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Question"
+    }],
+    questionsAttended: [{
+        quesId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Question"
+        },
+        selected: {
+            type: String,
+            enum: ["A", "B", "C", "D"]
+        }
+    }],
     quizStatus: {
         enum: ["completed", "not_started", "started"],
         type: String,

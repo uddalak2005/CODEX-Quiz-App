@@ -1,4 +1,3 @@
-import { required } from "joi";
 import mongoose from "mongoose";
 
 const quizSchema = new mongoose.Schema({
@@ -24,10 +23,13 @@ const quizSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    questions: {
-        type: Array,
-        default: true
-    },
+    questions: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Question"
+        }
+    ],
+
     participants: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "user"

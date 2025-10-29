@@ -1,9 +1,9 @@
-import Question from "../models/Questions.model";
-import Quiz from "../models/Quizes.model";
+import Question from "../models/Questions.model.js";
+import Quiz from "../models/Quizes.model.js";
 import User from "../models/Users.model.js";
 import Result from "../models/Result.model.js";
 import jwt from "jsonwebtoken";
-import joi from "joi"
+import Joi from "joi"
 
 class AdminController {
 
@@ -32,7 +32,8 @@ class AdminController {
 
             const token = jwt.sign({
                 userId: user._id,
-                email: user.email
+                email: user.email,
+                role: "admin"
             }, process.env.JWT_SECRET,
                 {
                     expiresIn: "1h"
@@ -52,59 +53,83 @@ class AdminController {
 
     async createQuiz(req, res) {
 
-        const optionSchema = joi.object({
-            nameString: joi.string().allow("", null),
-            image: joi.string().allow("", null)
+        console.log(req.body);
+
+        const optionSchema = Joi.object({
+            nameString: Joi.string().allow("", null),
+            image: Joi.string().allow("", null)
         }).or("nameString", "image");
 
-        const joiSchema = joi.object({
-            name: joi.string().required(),
-            target: joi.number().required(),
-            questions: joi.array().items(
-                joi.object({
-                    quesString: joi.string().allow("", null),
-                    quesImage: joi.string().allow("", null),
-                    objectA: optionSchema.required(),
-                    objectB: optionSchema.required(),
-                    objectC: optionSchema.required(),
-                    objectC: optionSchema.required(),
-                    correct: joi.string().valid("A", "B", "C", "D").required()
+        const joiSchema = Joi.object({
+            name: Joi.string().required(),
+            target: Joi.number().required(),
+            questions: Joi.array().items(
+                Joi.object({
+                    quesString: Joi.string().allow("", null),
+                    quesImage: Joi.string().allow("", null),
+                    optionA: optionSchema.required(),
+                    optionB: optionSchema.required(),
+                    optionC: optionSchema.required(),
+                    optionD: optionSchema.required(),
+                    correct: Joi.string().valid("A", "B", "C", "D").required(),
+                    timer: Joi.number().valid(30, 60, 90).required()
                 })
-            )
+            ).required()
         });
 
         try {
             const { value, error } = joiSchema.validate(req.body);
 
+            console.log("Validated value:", value);
+
+
             if (error) {
                 console.log(error.details);
-                return req.status(400).json({
+                return res.status(400).json({
                     message: error.details
                 })
             }
 
             const user = req.user;
 
+            console.log(user);
+
             const newQuiz = await Quiz.create({
                 user: user.userId,
                 name: value.name,
-                target: value.target
-            })
+                target: value.target,
+            });
+
+            let questionIdArray = []
 
             for (const question of value.questions) {
-                const question = await Question.create({
+                console.log(question);
+                const newQuestion = await Question.create({
                     quizId: newQuiz._id,
                     quesString: question.quesString,
                     quesImage: question.quesImage,
-                    optionsA: question.optionsA,
-                    optionsB: question.optionsB,
-                    optionsC: question.optionsC,
-                    optionsD: question.optionsD,
-                    correct: question.correct
+                    optionA: question.optionA,
+                    optionB: question.optionB,
+                    optionC: question.optionC,
+                    optionD: question.optionD,
+                    correct: question.correct,
+                    timer: question.timer
                 })
+
+                questionIdArray.push(newQuestion._id);
             }
 
-            return res.status(201).json("Quiz Created successfully");
+            await Quiz.findByIdAndUpdate(newQuiz._id,
+                {
+                    $set: {
+                        questions: questionIdArray
+                    }
+                }
+            );
+
+            return res.status(201).json({
+                message: "Quiz Created successfully"
+            });
 
         } catch (err) {
             console.log(err.message);
@@ -114,17 +139,18 @@ class AdminController {
         }
     }
 
-    async getQuizes(req, res) {
+    async getQuiz(req, res) {
         try {
 
             const { quizId } = req.params;
 
-            const quizDetails = await Quiz.find(quizId)
-                .populate("users", "name email year")
-                .populate("questions");
+            const quizDetails = await Quiz.findById(quizId)
+                .populate("user", "name email year")
+                .populate("questions")
+                .populate("participants");
 
             if (!quizDetails) {
-                console("Quiz Not Found");
+                console.log("Quiz Not Found");
                 return res.status(404).json({
                     message: "Quiz Not Found"
                 })
@@ -135,18 +161,27 @@ class AdminController {
                 quizDetails.participants
             }
 
-            const results = quizDetails.participants.map(async (participant) => {
-                const result = await Result.find({ userId: participant._id });
-                return {
-                    ...participant,
-                    points: result.points
-                }
-            })
+            const results = await Promise.all(
+                quizDetails.participants.map(async (participant) => {
+                    console.log(participant);
+                    const result = await Result.findOne({ userId: participant._id, quizId: quizDetails._id });
 
-            quizDetails.participants = results;
+                    return {
+                        name: participant.name,
+                        email: participant.email,
+                        year: participant.year,
+                        points: result?.points || 0,
+                        duration: result?.duration || 0
+                    };
+                })
+            );
+
+            console.log(results);
+            const quizObj = quizDetails.toObject();
+            quizObj.participants = results;
 
             return res.status(200).json({
-                quizDetails
+                quizObj
             })
 
         } catch (err) {
@@ -177,87 +212,109 @@ class AdminController {
         }
     }
 
-    async updateQuestion(req, res) {
-        try {
+    async updateQuiz(req, res) {
+        const optionSchema = Joi.object({
+            nameString: Joi.string().allow("", null),
+            image: Joi.string().allow("", null)
+        }).or("nameString", "image");
 
-            const { quesId } = req.params;
-
-            const optionSchema = joi.object({
-                nameString: joi.string().allow("", null),
-                image: joi.string().allow("", null)
-            }).or("nameString", "image");
-
-            const questionSchema = joi.object(
-                joi.object({
-                    quesString: joi.string().allow("", null),
-                    quesImage: joi.string().allow("", null),
-                    objectA: optionSchema.required(),
-                    objectB: optionSchema.required(),
-                    objectC: optionSchema.required(),
-                    objectC: optionSchema.required(),
-                    correct: joi.string().valid("A", "B", "C", "D").required()
+        const joiSchema = Joi.object({
+            name: Joi.string().required(),
+            target: Joi.number().required(),
+            questions: Joi.array().items(
+                Joi.object({
+                    _id: Joi.string().optional(),
+                    quesString: Joi.string().allow("", null),
+                    quesImage: Joi.string().allow("", null),
+                    optionA: optionSchema.required(),
+                    optionB: optionSchema.required(),
+                    optionC: optionSchema.required(),
+                    optionD: optionSchema.required(),
+                    correct: Joi.string().valid("A", "B", "C", "D").required(),
+                    timer: Joi.number().valid(30, 60, 90).required()
                 })
             )
+        });
 
-            const { value, error } = questionSchema.validate(req.body);
-
+        try {
+            const { value, error } = joiSchema.validate(req.body);
             if (error) {
-                console.log(error.details);
-                return res.status(400).json({
-                    message: error.details
-                })
+                return res.status(400).json({ message: error.details });
             }
 
-            const updatedQuestion = await Question.updateOne(
-                { _id: quesId },
+            const { quizId } = req.params;
+            const user = req.user;
+            console.log(user, quizId);
+
+            const existingQuiz = await Quiz.findOne({ _id: quizId, user: user.userId });
+            if (!existingQuiz) {
+                return res.status(404).json({ message: "Quiz not found or unauthorized" });
+            }
+
+            existingQuiz.name = value.name;
+            existingQuiz.target = value.target;
+            await existingQuiz.save();
+
+
+            await Question.deleteMany({ quizId: existingQuiz._id });
+
+            let questionIdArray = []
+
+
+            for (const q of value.questions) {
+                const newQuestion = await Question.create({
+                    quizId: existingQuiz._id,
+                    quesString: q.quesString,
+                    quesImage: q.quesImage,
+                    optionA: q.optionA,
+                    optionB: q.optionB,
+                    optionC: q.optionC,
+                    optionD: q.optionD,
+                    correct: q.correct,
+                    timer: q.timer
+                });
+
+                questionIdArray.push(newQuestion._id);
+            }
+
+            await Quiz.findByIdAndUpdate(existingQuiz._id,
                 {
                     $set: {
-                        quesString: value.quesString,
-                        quesImage: value.quesImage,
-                        optionsA: value.optionsA,
-                        optionsB: value.optionsB,
-                        optionsC: value.optionsC,
-                        optionsD: value.optionsD,
-                        correct: value.correct
+                        questions: questionIdArray
                     }
                 }
             );
 
-            return res.status(201).json({
-                message: "Question Updated Successfully"
-            })
+            return res.status(200).json({ message: "Quiz updated successfully" });
+
         } catch (err) {
-            console.log(err.message);
-            return res.status(500).json({
-                message: err.message
-            })
+            console.error("Error updating quiz:", err.message);
+            return res.status(500).json({ message: "Internal Server Error", error: err.message });
         }
     }
 
-    async deleteQuestion(req, res) {
-        try {
-            const { quesId } = req.params;
 
-            const question = await Question.findById(quesId);
-            if (!question) {
-                return res.status(404).json({
-                    message: "Question not found"
-                });
+    async deleteQuiz(req, res) {
+        try {
+            const { quizId } = req.params;
+            const user = req.user;
+
+            const quiz = await Quiz.findOne({ _id: quizId, user: user.userId });
+            if (!quiz) {
+                return res.status(404).json({ message: "Quiz not found or unauthorized" });
             }
 
-            await Question.deleteOne({ _id: quesId });
+            await Question.deleteMany({ quizId: quiz._id });
 
-            return res.status(200).json({
-                message: "Question deleted successfully"
-            });
+            await Quiz.findByIdAndDelete(quizId);
+
+            return res.status(200).json({ message: "Quiz deleted successfully" });
 
         } catch (err) {
-            console.error(err.message);
-            return res.status(500).json({
-                error: err.message
-            });
+            console.error("Error deleting quiz:", err.message);
+            return res.status(500).json({ message: "Internal Server Error", error: err.message });
         }
-    }
+    };
 }
 
 const adminController = new AdminController();

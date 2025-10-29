@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const resultSchema = new mongoose.Schema({
-    user: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
         ref: "user"
@@ -17,6 +17,7 @@ const resultSchema = new mongoose.Schema({
     },
     start: Date,
     end: Date,
+    duration: Number,
     questions: [{
         type: mongoose.Schema.Types.ObjectId,
         required: true,

@@ -36,6 +36,7 @@ class AuthController {
     }
 
     async loginUser(req, res) {
+        console.log(req.body);
         const joiSchema = Joi.object({
             regdNo: Joi.string().required(),
             email: Joi.string().required(),
@@ -50,18 +51,23 @@ class AuthController {
             });
         }
 
+        console.log(value);
+
         const user = await User.findOne({
             regdNo: value.regdNo,
             email: value.email
         })
 
         if (!user) {
-            return res.status(400, "User Not Found");
+            return res.status(400, "User Not Found").json({
+                message: "Invalid registration number or password"
+            });
         }
 
         const token = jwt.sign({
             userId: user._id,
-            email: user.email
+            email: user.email,
+            role: user.role
         }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         return res.status(200).json({

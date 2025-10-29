@@ -12,26 +12,31 @@ const questionSchema = new mongoose.Schema({
     quesImage: {
         type: String
     },
-    optionsA: {
-        ansString: String,
-        ansImage: String
+    optionA: {
+        nameString: String,
+        nameImage: String
     },
-    optionsB: {
-        ansString: String,
-        ansImage: String
+    optionB: {
+        nameString: String,
+        nameImage: String
     },
-    optionsC: {
-        ansString: String,
-        ansImage: String
+    optionC: {
+        nameString: String,
+        nameImage: String
     },
-    optionsD: {
-        ansString: String,
-        ansImage: String
+    optionD: {
+        nameString: String,
+        nameImage: String
     },
     correct: {
         type: String,
         required: true,
         enum: ['A', 'B', 'C', 'D']
+    },
+    timer: {
+        type: Number,
+        required: true,
+        enum: [30, 60, 90]
     },
     createdOn: {
         type: Date,
