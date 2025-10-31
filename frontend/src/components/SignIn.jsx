@@ -7,16 +7,13 @@ import TextField from '@mui/material/TextField';
 import Stack from '@mui/material/Stack';
 import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
-import ForgotPassword from './ForgotPassword';
 import { useNavigate } from 'react-router-dom';
-
 import {
     Select,
     MenuItem,
 } from '@mui/material'
 import codexLogo from '../assets/codex-logo.png';
-import { useAuth } from '../context/AuthContext';
-import { use } from 'react';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const Card = styled(MuiCard)(({ theme }) => ({
     display: 'flex',
@@ -195,6 +192,7 @@ export default function SignIn(props) {
                                 value={formData.regNo}
                                 onChange={handleInputChange}
                                 autoComplete="current-password"
+                                placeholder="your registration number"
                                 autoFocus
                                 required
                                 fullWidth
@@ -209,14 +207,18 @@ export default function SignIn(props) {
                                 name="year"
                                 value={year}
                                 onChange={(e) => setYear(e.target.value)}
+                                placeholder="your year"
+                                displayEmpty
                                 required
                             >
-                                <MenuItem value="1">1st Year</MenuItem>
+                                <MenuItem value="" disabled>
+                                    Select your year
+                                </MenuItem>
+                                <MenuItem value="1" default>1st Year</MenuItem>
                                 <MenuItem value="2">2nd Year</MenuItem>
                             </Select>
                         </FormControl>
 
-                        <ForgotPassword open={open} handleClose={handleClose} />
                         <button
                             type="submit"
                             onClick={validateInputs}

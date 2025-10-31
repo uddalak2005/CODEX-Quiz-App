@@ -1,11 +1,15 @@
 import jwt from "jsonwebtoken";
 
 function verifyJWT(req, res, next) {
+
     const authHeader = req.headers.authorization;
 
     const token = authHeader && authHeader.split(' ')[1];
 
+    console.log(token);
+
     if (!token) {
+        console.log("No Token");
         return res.status(401).json({
             message: "Unauthorised"
         })
@@ -23,6 +27,8 @@ function verifyJWT(req, res, next) {
             email: decoded.email,
             role: decoded.role
         }
+
+        console.log("Auth Successfull");
 
         next();
     })
