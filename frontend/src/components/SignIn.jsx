@@ -96,7 +96,7 @@ export default function SignIn(props) {
             await login(formData.email, formData.regNo);
             console.log("Login Successfull");
             if (token) {
-                navigate(`/quiz/${encodeYear(year)}`);
+                navigate(`/quiz/instructions/${encodeYear(year)}`);
             }
         } catch (err) {
             console.log("login failed : ", err.message);

@@ -89,12 +89,20 @@ class QuizController {
 
             const { quizId } = req.params;
 
+            const userData = await User.findById(user.userId);
+
+            if (userData.quizStatus != "started") {
+                return res.status(400).json({
+                    message: "Already Completed for the quiz"
+                })
+            }
+
 
             const joiSchema = joi.object({
                 questions: joi.array().items(
                     joi.object({
                         quesId: joi.string().required(),
-                        selected: joi.string().valid("A", "B", "C", "D").required()
+                        selected: joi.string().valid("A", "B", "C", "D", "").required()
                     })
                 )
             });
@@ -141,7 +149,8 @@ class QuizController {
             await Quiz.findByIdAndUpdate(
                 quizId,
                 {
-                    $push: { participants: user.userId }
+                    //For unique participants
+                    $addToSet: { participants: user.userId }
                 }
             );
             await User.findByIdAndUpdate(
@@ -153,7 +162,8 @@ class QuizController {
                                 quesId: new mongoose.Types.ObjectId(q.quesId),
                                 selected: q.selected
                             }
-                        })
+                        }),
+                        quizStatus: "completed"
                     }
                 },
                 { new: true }

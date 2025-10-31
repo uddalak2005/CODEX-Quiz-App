@@ -6,7 +6,7 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(() => localStorage.getItem("token"));
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(() => localStorage.getItem("user"));
 
     async function login(email, regdNo) {
         try {
@@ -20,6 +20,7 @@ export const AuthProvider = ({ children }) => {
             if (data.token) {
                 setToken(data.token);
                 localStorage.setItem("token", data.token);
+                localStorage.setItem("userName", data.user.name);
             }
             console.log(data);
             setUser(data.user);

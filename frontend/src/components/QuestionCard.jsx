@@ -3,7 +3,11 @@ import CircularIndeterminate from "./Loader.jsx";
 
 function QuestionCard({ onNext, question, setAnswer }) {
 
-    const [timeLeft, setTimeLeft] = useState(question.timer || 20);
+    const [timeLeft, setTimeLeft] = useState(() => {
+        const savedTime = localStorage.getItem(`timer_${question._id}`);
+        return savedTime ? parseInt(savedTime, 10) : 20;
+    });
+
     const [selected, setSelected] = useState('');
     const [isLoadingNext, setIsLoadingNext] = useState(false);
 
@@ -15,11 +19,22 @@ function QuestionCard({ onNext, question, setAnswer }) {
         }
 
         const timer = setInterval(() => {
-            setTimeLeft((prev) => prev - 1);
+            setTimeLeft((prev) => {
+                const newTime = prev - 1;
+                localStorage.setItem(`timer_${question._id}`, newTime);
+                return newTime;
+            });
         }, 1000);
+
 
         return () => clearInterval(timer);
     }, [timeLeft]);
+
+    useEffect(() => {
+        return () => {
+            localStorage.setItem(`timer_${question._id}`, timeLeft);
+        };
+    }, [timeLeft, question._id]);
 
 
     function handleSelect(option) {
@@ -56,13 +71,17 @@ function QuestionCard({ onNext, question, setAnswer }) {
                     </div >
                 ) : (
                     <div>
-                        <div className="select-none w-full mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 transition-all duration-300 mt-20"
+                        <div
+                            className="select-none mx-auto bg-white rounded-2xl shadow-xl p-6 md:p-8 transition-all duration-300 mt-20 w-full sm:w-[90%] lg:w-[1200px] xl:w-[1300px]"
                             onCopy={(e) => e.preventDefault()}
                             onCut={(e) => e.preventDefault()}
                             onPaste={(e) => e.preventDefault()}
-                            onContextMenu={(e) => e.preventDefault()}>
+                            onContextMenu={(e) => e.preventDefault()}
+                        >
+
+
                             {/* Header */}
-                            <div className="flex justify-between items-center mb-6">
+                            <div className="flex justify-between items-center mb-6 gap-10">
                                 <h2 className="text-lg md:text-xl font-semibold text-gray-800 ">
                                     {question?.quesString}
                                 </h2>
