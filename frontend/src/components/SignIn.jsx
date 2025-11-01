@@ -196,7 +196,7 @@ export default function SignIn(props) {
                             />
                         </FormControl>
                         <FormControl>
-                            <FormLabel htmlFor="regNo" ><b>Registation Number</b></FormLabel>
+                            <FormLabel htmlFor="regNo" ><b>Registration Number</b></FormLabel>
                             <TextField
                                 error={passwordError}
                                 helperText={passwordErrorMessage}
