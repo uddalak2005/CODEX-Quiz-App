@@ -39,8 +39,10 @@ class AuthController {
         console.log(req.body);
         const joiSchema = Joi.object({
             regdNo: Joi.string().required(),
-            email: Joi.string().required(),
+            email: Joi.string().email().required(),
+            year: Joi.number().valid(1, 2).required()
         });
+
 
         const { value, error } = joiSchema.validate(req.body);
 
@@ -55,12 +57,13 @@ class AuthController {
 
         const user = await User.findOne({
             regdNo: value.regdNo,
-            email: value.email
+            email: value.email,
+            year: value.year
         })
 
         if (!user) {
             return res.status(400, "User Not Found").json({
-                message: "Invalid registration number or password"
+                message: "Invalid Credentials Please Check."
             });
         }
 

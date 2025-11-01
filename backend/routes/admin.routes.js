@@ -10,5 +10,6 @@ router.post("/createQuiz", verifyJWT, verifyAdmin, adminController.createQuiz);
 router.get("/getQuiz/:quizId", verifyJWT, verifyAdmin, adminController.getQuiz);
 router.delete("/deleteQuiz/:quizId", verifyJWT, verifyAdmin, adminController.deleteQuiz);
 router.put("/updateQuiz/:quizId", verifyJWT, verifyAdmin, adminController.updateQuiz);
+router.get("/getAllData", verifyJWT, verifyAdmin, adminController.getAllData);
 
 export default router;

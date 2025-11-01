@@ -11,6 +11,8 @@ class AdminController {
         try {
             const { email, password } = req.body;
 
+            console.log(email, password);
+
             if (!email || !password) {
                 console.log("Email or password missing");
                 return res.status(400).json({
@@ -63,6 +65,8 @@ class AdminController {
         const joiSchema = Joi.object({
             name: Joi.string().required(),
             target: Joi.number().required(),
+            startTime: Joi.date().required(),
+            endTime: Joi.date().greater(Joi.ref('startTime')).required(),
             questions: Joi.array().items(
                 Joi.object({
                     quesString: Joi.string().allow("", null),
@@ -72,7 +76,7 @@ class AdminController {
                     optionC: optionSchema.required(),
                     optionD: optionSchema.required(),
                     correct: Joi.string().valid("A", "B", "C", "D").required(),
-                    timer: Joi.number().valid(30, 60, 90).required()
+                    timer: Joi.number().valid(15, 30, 60, 90).required()
                 })
             ).required()
         });
@@ -98,6 +102,8 @@ class AdminController {
                 user: user.userId,
                 name: value.name,
                 target: value.target,
+                startTime: value.startTime,
+                endTime: value.endTime
             });
 
             let questionIdArray = []
@@ -221,9 +227,10 @@ class AdminController {
         const joiSchema = Joi.object({
             name: Joi.string().required(),
             target: Joi.number().required(),
+            startTime: Joi.date().required(),
+            endTime: Joi.date().greater(Joi.ref('startTime')).required(),
             questions: Joi.array().items(
                 Joi.object({
-                    _id: Joi.string().optional(),
                     quesString: Joi.string().allow("", null),
                     quesImage: Joi.string().allow("", null),
                     optionA: optionSchema.required(),
@@ -231,9 +238,9 @@ class AdminController {
                     optionC: optionSchema.required(),
                     optionD: optionSchema.required(),
                     correct: Joi.string().valid("A", "B", "C", "D").required(),
-                    timer: Joi.number().valid(30, 60, 90).required()
+                    timer: Joi.number().valid(15, 30, 60, 90).required()
                 })
-            )
+            ).required()
         });
 
         try {
@@ -315,6 +322,33 @@ class AdminController {
             return res.status(500).json({ message: "Internal Server Error", error: err.message });
         }
     };
+    async getAllData(req, res) {
+        try {
+            const userId = req.user?.userId;
+
+            if (!userId) {
+                return res.status(401).json({ success: false, message: "Unauthorized access" });
+            }
+
+            const allQuizzes = await Quiz.find({ user: userId })
+                .populate("user", "name email")
+                .sort({ createdOn: -1 });
+
+            return res.status(200).json({
+                success: true,
+                count: allQuizzes.length,
+                allQuizzes,
+            });
+
+        } catch (err) {
+            console.error("Error fetching quizzes:", err);
+            return res.status(500).json({
+                success: false,
+                message: "Internal Server Error",
+                error: err.message,
+            });
+        }
+    }
 }
 
 const adminController = new AdminController();

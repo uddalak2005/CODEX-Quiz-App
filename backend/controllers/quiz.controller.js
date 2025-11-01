@@ -22,10 +22,20 @@ class QuizController {
                 })
             }
 
+            const now = new Date();
+
+            if (now < quiz.startTime) {
+                return res.status(403).json({ message: "Quiz has not started yet." });
+            }
+
+            if (now > quiz.endTime) {
+                return res.status(403).json({ message: "Quiz has ended." });
+            }
+
             console.log(quiz);
 
-            if (quiz.questions && quiz.questions.length > 20) {
-                quiz.questions = random.sample(quiz.questions, 20);
+            if (quiz.questions && quiz.questions.length > 30) {
+                quiz.questions = random.sample(quiz.questions, 30);
             }
 
 
@@ -87,6 +97,8 @@ class QuizController {
         try {
             const user = req.user;
 
+            console.log(req.body);
+
             const { quizId } = req.params;
 
             const userData = await User.findById(user.userId);
@@ -108,6 +120,8 @@ class QuizController {
             });
 
             const { value, error } = joiSchema.validate(req.body);
+
+            console.log(value);
 
             if (error) {
                 console.log(error.details);

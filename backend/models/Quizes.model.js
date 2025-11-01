@@ -13,7 +13,8 @@ const quizSchema = new mongoose.Schema({
     target: {
         type: Number,
         enum: [1, 2],
-        required: true
+        required: true,
+        unique: true
     },
     createdOn: {
         type: Date,
@@ -33,7 +34,10 @@ const quizSchema = new mongoose.Schema({
     participants: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "user"
-    }]
+    }],
+
+    startTime: { type: Date, required: true },
+    endTime: { type: Date, required: true },
 })
 
 const Quiz = mongoose.model("quiz", quizSchema);

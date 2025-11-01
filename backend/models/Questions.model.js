@@ -36,7 +36,7 @@ const questionSchema = new mongoose.Schema({
     timer: {
         type: Number,
         required: true,
-        enum: [30, 60, 90]
+        enum: [15, 30, 60, 90]
     },
     createdOn: {
         type: Date,
