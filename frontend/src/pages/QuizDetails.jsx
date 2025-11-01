@@ -77,53 +77,55 @@ export default function QuizDetails() {
                     </h2>
 
                     <div className="overflow-x-auto border border-gray-200 rounded-xl shadow-sm">
-                        <table className="min-w-full divide-y divide-gray-200 text-sm">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-700">
-                                        Rank
-                                    </th>
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-700">
-                                        Name
-                                    </th>
-                                    <th className="py-3 px-4 text-left font-semibold text-gray-700">
-                                        Email
-                                    </th>
-                                    <th className="py-3 px-4 text-center font-semibold text-gray-700">
-                                        Year
-                                    </th>
-                                    <th className="py-3 px-4 text-center font-semibold text-gray-700">
-                                        Points
-                                    </th>
-                                    <th className="py-3 px-4 text-center font-semibold text-gray-700">
-                                        Duration (s)
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {participants.map((p, i) => (
-                                    <tr
-                                        key={i}
-                                        className="hover:bg-gray-50 transition"
-                                    >
-                                        <td className="py-3 px-4 font-medium text-gray-800">
-                                            #{i + 1}
-                                        </td>
-                                        <td className="py-3 px-4">{p.name}</td>
-                                        <td className="py-3 px-4 text-gray-600">
-                                            {p.email}
-                                        </td>
-                                        <td className="py-3 px-4 text-center">{p.year}</td>
-                                        <td className="py-3 px-4 text-center font-semibold text-gray-900">
-                                            {p.points}
-                                        </td>
-                                        <td className="py-3 px-4 text-center text-gray-700">
-                                            {Math.floor(p.duration / 1000)}
-                                        </td>
+                        <div className="max-h-[400px] overflow-y-auto">
+                            <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="py-3 px-4 text-left font-semibold text-gray-700">
+                                            Rank
+                                        </th>
+                                        <th className="py-3 px-4 text-left font-semibold text-gray-700">
+                                            Name
+                                        </th>
+                                        <th className="py-3 px-4 text-left font-semibold text-gray-700">
+                                            Email
+                                        </th>
+                                        <th className="py-3 px-4 text-center font-semibold text-gray-700">
+                                            Year
+                                        </th>
+                                        <th className="py-3 px-4 text-center font-semibold text-gray-700">
+                                            Points
+                                        </th>
+                                        <th className="py-3 px-4 text-center font-semibold text-gray-700">
+                                            Duration (s)
+                                        </th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {participants.map((p, i) => (
+                                        <tr
+                                            key={i}
+                                            className="hover:bg-gray-50 transition"
+                                        >
+                                            <td className="py-3 px-4 font-medium text-gray-800">
+                                                #{i + 1}
+                                            </td>
+                                            <td className="py-3 px-4">{p.name}</td>
+                                            <td className="py-3 px-4 text-gray-600">
+                                                {p.email}
+                                            </td>
+                                            <td className="py-3 px-4 text-center">{p.year}</td>
+                                            <td className="py-3 px-4 text-center font-semibold text-gray-900">
+                                                {p.points}
+                                            </td>
+                                            <td className="py-3 px-4 text-center text-gray-700">
+                                                {Math.floor(p.duration / 1000)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
 
