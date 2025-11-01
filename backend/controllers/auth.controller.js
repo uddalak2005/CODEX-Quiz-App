@@ -5,35 +5,36 @@ import jwt from "jsonwebtoken";
 class AuthController {
 
     async registerUser(req, res) {
-        const joiSchema = Joi.object({
-            name: Joi.string().required(),
-            regdNo: Joi.string().required(),
-            email: Joi.string().email().required(),
-            year: Joi.number().required()
-        })
-
-        const { value, error } = joiSchema.validate(req.body);
-
-        console.log(value);
-
-        if (error) {
-            console.log(error.details);
-            return res.status(400).json({
-                message: error.details
+        try {
+            const joiSchema = Joi.object({
+                name: Joi.string().required(),
+                regdNo: Joi.string().required(),
+                email: Joi.string().email().required(),
+                year: Joi.number().required()
             });
+
+            const { value, error } = joiSchema.validate(req.body);
+            if (error) {
+                return res.status(400).json({ message: error.details });
+            }
+
+            const newUser = await User.create(value);
+            return res.status(201).json({ message: "New User Created Successfully", user: newUser });
+        } catch (err) {
+            if (err.code === 11000) {
+                // MongoDB duplicate key error
+                return res.status(400).json({
+                    message: "User already exists",
+                    field: err.keyValue
+                });
+            }
+
+            console.error("❌ Unexpected error:", err);
+            return res.status(500).json({ message: "Internal Server Error" });
         }
-
-        const newUser = await User.create({
-            name: value.name,
-            regdNo: value.regdNo,
-            email: value.email,
-            year: value.year
-        });
-
-        res.status(201).json({
-            message: "New User Created Successfully"
-        });
     }
+
+
 
     async loginUser(req, res) {
         console.log(req.body);
