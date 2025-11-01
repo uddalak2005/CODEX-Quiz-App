@@ -7,7 +7,7 @@ import quizRouter from "./routes/quiz.routes.js";
 const app = express();
 
 app.use(cors([{
-    origin: "*"
+    origin: process.env.CORS_ORIGIN || "*"
 }]));
 
 app.use(express.json());
@@ -17,6 +17,8 @@ app.use("/auth", authRouter);
 app.use("/admin", adminRouter);
 app.use("/quiz", quizRouter);
 
-
+app.get("/", (req, res) => {
+    res.send("CODEX Backend");
+})
 
 export default app;
