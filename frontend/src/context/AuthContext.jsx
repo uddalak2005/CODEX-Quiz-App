@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import axios from "axios";
+import { useEffect } from "react";
 
 
 const AuthContext = createContext();
@@ -7,19 +8,69 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(() => localStorage.getItem("token"));
     const [user, setUser] = useState(() => localStorage.getItem("user"));
+    const [adminToken, setAdminToken] = useState(localStorage.getItem("adminToken"));
 
-    async function login(email, regdNo) {
+    useEffect(() => {
+        if (adminToken) localStorage.setItem("adminToken", adminToken);
+        else localStorage.removeItem("adminToken");
+    }, [adminToken]);
+
+    useEffect(() => {
+        if (token) localStorage.setItem("token", token);
+        else localStorage.removeItem("token");
+    }, [token]);
+
+    async function login(email, regdNo, year) {
+        console.log({
+            email,
+            regdNo,
+            year
+        });
         try {
-            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/login`,
+            const res = await axios.post(
+                `${import.meta.env.VITE_BACKEND_URL}/auth/login`,
                 {
                     email,
-                    regdNo
+                    regdNo,
+                    year: parseInt(year)
                 }
             );
+
             const data = res.data;
             if (data.token) {
                 setToken(data.token);
                 localStorage.setItem("token", data.token);
+                localStorage.setItem("userName", data.user.name);
+            }
+            console.log(data);
+            setUser(data.user);
+
+        } catch (err) {
+            console.log(err.message);
+
+            if (err.response) {
+                console.log("Backend responded with:", err.response.data);
+                return { success: false, message: err.response.data.message };
+            } else {
+                console.log("Network or server error");
+                return { success: false, message: "Server error. Please try again later." };
+            }
+        }
+    }
+
+    async function adminLogin(email, password) {
+        console.log(email, password);
+        try {
+            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/admin/login`,
+                {
+                    email,
+                    password
+                }
+            );
+            const data = res.data;
+            if (data.token) {
+                setAdminToken(data.token);
+                localStorage.setItem("adminToken", token);
                 localStorage.setItem("userName", data.user.name);
             }
             console.log(data);
@@ -45,7 +96,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     return (
-        <AuthContext.Provider value={{ user, token, login, logout, isAuthenticate: token ? true : false }}>
+        <AuthContext.Provider value={{ user, token, login, adminLogin, logout, isAuthenticate: token ? true : false }}>
             {children}
         </AuthContext.Provider>
     )

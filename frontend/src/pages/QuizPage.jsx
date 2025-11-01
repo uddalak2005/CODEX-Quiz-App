@@ -4,8 +4,17 @@ import axios from "axios";
 import CircularIndeterminate from "../components/Loader.jsx";
 import QuestionCard from "../components/QuestionCard.jsx";
 import codexLogo from '../assets/codex-logo.png';
+import { useAuth } from "../context/AuthContext.jsx";
 
 function QuizPage() {
+
+
+    useEffect(() => {
+        document.title = "Quiz";
+    }, []);
+
+
+
     const { year } = useParams();
     const decodedYear = atob(year);
     const token = localStorage.getItem("token");
@@ -15,6 +24,8 @@ function QuizPage() {
         const savedQuiz = localStorage.getItem("quizData");
         return savedQuiz ? JSON.parse(savedQuiz) : null;
     });
+
+    const { logout } = useAuth();
 
     const [currentQues, setCurrentQues] = useState(() => {
         const savedCurrentQues = localStorage.getItem("quizCurrentQues");
@@ -71,6 +82,8 @@ function QuizPage() {
         if (quizEnd && quiz) {
             const submitQuiz = async () => {
 
+                console.log(answer);
+
                 try {
                     const response = await axios.post(
                         `${import.meta.env.VITE_BACKEND_URL}/quiz/submitQuiz/${quiz._id}`,
@@ -80,6 +93,7 @@ function QuizPage() {
                         }
                     );
                     console.log("Quiz submitted:", response.data);
+                    logout();
                 } catch (err) {
                     console.error("Error submitting quiz:", err);
                 }
@@ -109,13 +123,23 @@ function QuizPage() {
         document.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("blur", handleBlur);
 
-        // Cleanup listeners
+
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
             window.removeEventListener("blur", handleBlur);
         };
     }, [quizEnd, quiz, answer]);
 
+
+
+    useEffect(() => {
+        if (!quiz || quizEnd) return;
+
+        if (currentQues >= quiz.questions.length) {
+            console.log("All questions answered — auto submitting quiz...");
+            handleSubmit();
+        }
+    }, [currentQues, quiz, quizEnd]);
 
 
     function handleNext() {
@@ -203,8 +227,12 @@ function QuizPage() {
                     />
                 </div>
             ) : (
-                handleSubmit()
+                <div className="w-full flex flex-col justify-center items-center mt-20">
+                    <p className="text-xl text-gray-600">Submitting your quiz...</p>
+                    <CircularIndeterminate />
+                </div>
             )}
+
         </>
     );
 }

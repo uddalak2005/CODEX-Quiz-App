@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AlertCircle, Clock, HelpCircle } from "lucide-react";
 import codexLogo from "../assets/codex-logo.png";
+import { useEffect } from "react";
 
 const InstructionPage = () => {
     const navigate = useNavigate();
@@ -11,6 +12,10 @@ const InstructionPage = () => {
     const handleStart = () => {
         navigate(`/quiz/${year}`);
     };
+
+    useEffect(() => {
+        document.title = "Instructions";
+    }, []);
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">

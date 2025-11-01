@@ -14,6 +14,7 @@ import {
 } from '@mui/material'
 import codexLogo from '../assets/codex-logo.png';
 import { useAuth } from '../context/AuthContext.jsx';
+import { toast } from "react-toastify";
 
 const Card = styled(MuiCard)(({ theme }) => ({
     display: 'flex',
@@ -73,35 +74,73 @@ export default function SignIn(props) {
 
     const [year, setYear] = React.useState(0);
 
-    const handleClickOpen = () => {
-        setOpen(true);
-    };
 
-    const handleClose = () => {
-        setOpen(false);
-    };
 
     function encodeYear(year) {
         return btoa(year.toString());
     }
 
 
-    const handleSubmit = async (event) => {
-        event.preventDefault();
-        if (emailError || passwordError) {
-            event.preventDefault();
-            return;
-        }
-        try {
-            await login(formData.email, formData.regNo);
-            console.log("Login Successfull");
-            if (token) {
-                navigate(`/quiz/instructions/${encodeYear(year)}`);
-            }
-        } catch (err) {
-            console.log("login failed : ", err.message);
+    // Validate using component state so we can get a synchronous boolean result
+    const validateInputs = () => {
+        const emailVal = formData.email?.trim();
+        const regdVal = formData.regNo?.trim();
+
+        let isValid = true;
+
+        if (!emailVal || !/\S+@\S+\.\S+/.test(emailVal)) {
+            setEmailError(true);
+            setEmailErrorMessage('Please enter a valid email address.');
+            isValid = false;
+        } else {
+            setEmailError(false);
+            setEmailErrorMessage('');
         }
 
+        if (!regdVal) {
+            setPasswordError(true);
+            setPasswordErrorMessage('Enter a valid Registration Number');
+            isValid = false;
+        } else {
+            setPasswordError(false);
+            setPasswordErrorMessage('');
+        }
+
+        if (!year) {
+            // keep year validation simple (you can surface a UI error if desired)
+            isValid = false;
+        }
+
+        return isValid;
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        // use state-based validation so result is available immediately
+        const isValid = validateInputs();
+        if (!isValid) return;
+
+        try {
+            const res = await login(formData.email, formData.regNo, year);
+
+            // login() returns an object on failure, undefined on success in the current context implementation
+            if (res && res.success === false) {
+                toast.error(res.message || 'Login failed. Please check your credentials.', { autoClose: 3000 });
+                return;
+            }
+
+            console.log("Login Successful");
+            toast.success("Login Successful!", { autoClose: 3000 });
+
+            // navigate after successful login
+            navigate(`/quiz/instructions/${encodeYear(year)}`);
+
+        } catch (err) {
+            // if login ever throws, handle it here
+            console.log("login failed : ", err?.message || err);
+            toast.error("Login failed. Please check your credentials.", { autoClose: 3000 });
+        }
     };
 
     const handleInputChange = (event) => {
@@ -113,32 +152,7 @@ export default function SignIn(props) {
         })
     }
 
-    const validateInputs = () => {
-        const email = document.getElementById('email');
-        const regdNo = document.getElementById('regNo');
 
-        let isValid = true;
-
-        if (!email.value || !/\S+@\S+\.\S+/.test(email.value)) {
-            setEmailError(true);
-            setEmailErrorMessage('Please enter a valid email address.');
-            isValid = false;
-        } else {
-            setEmailError(false);
-            setEmailErrorMessage('');
-        }
-
-        if (!regdNo.value) {
-            setPasswordError(true);
-            setPasswordErrorMessage('Enter a valid Registration Number');
-            isValid = false;
-        } else {
-            setPasswordError(false);
-            setPasswordErrorMessage('');
-        }
-
-        return isValid;
-    };
 
     return (
         <div {...props}>
@@ -206,22 +220,19 @@ export default function SignIn(props) {
                                 id="year"
                                 name="year"
                                 value={year}
-                                onChange={(e) => setYear(e.target.value)}
-                                placeholder="your year"
+                                onChange={(e) => setYear(Number(e.target.value))}
                                 displayEmpty
                                 required
                             >
-                                <MenuItem value="" disabled>
-                                    Select your year
-                                </MenuItem>
-                                <MenuItem value="1" default>1st Year</MenuItem>
-                                <MenuItem value="2">2nd Year</MenuItem>
+                                <MenuItem value="" disabled>Select your year</MenuItem>
+                                <MenuItem value={1}>1st Year</MenuItem>
+                                <MenuItem value={2}>2nd Year</MenuItem>
                             </Select>
                         </FormControl>
 
+
                         <button
                             type="submit"
-                            onClick={validateInputs}
                             className='bg-blue-700 p-4 rounded text-white font-bold'
                         >
                             Sign in
