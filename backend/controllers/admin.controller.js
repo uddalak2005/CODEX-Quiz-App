@@ -253,7 +253,10 @@ class AdminController {
             const user = req.user;
             console.log(user, quizId);
 
-            const existingQuiz = await Quiz.findOne({ _id: quizId, user: user.userId });
+            const existingQuiz = await Quiz.findOne({ _id: quizId });
+
+            console.log(quizId, existingQuiz);
+
             if (!existingQuiz) {
                 return res.status(404).json({ message: "Quiz not found or unauthorized" });
             }
