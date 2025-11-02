@@ -24,13 +24,13 @@ class QuizController {
 
             const now = new Date();
 
-            if (now < quiz.startTime) {
-                return res.status(403).json({ message: "Quiz has not started yet." });
-            }
+            // if (now < quiz.startTime) {
+            //     return res.status(403).json({ message: "Quiz has not started yet." });
+            // }
 
-            if (now > quiz.endTime) {
-                return res.status(403).json({ message: "Quiz has ended." });
-            }
+            // if (now > quiz.endTime) {
+            //     return res.status(403).json({ message: "Quiz has ended." });
+            // }
 
             console.log(quiz);
 
