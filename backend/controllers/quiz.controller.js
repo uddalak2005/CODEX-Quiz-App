@@ -19,10 +19,15 @@ class QuizController {
                 return res.status(400).json({ message: "Quiz not found" });
             }
 
-            // Optional: quiz start/end time check
             const now = new Date();
-            if (now < quiz.startTime) return res.status(403).json({ message: "Quiz has not started yet." });
-            if (now > quiz.endTime) return res.status(403).json({ message: "Quiz has ended." });
+
+            if (now < quiz.startTime) {
+                return res.status(403).json({ message: "Quiz has not started yet." });
+            }
+
+            if (now > quiz.endTime) {
+                return res.status(403).json({ message: "Quiz has ended." });
+            }
 
             if (quiz.questions && quiz.questions.length > 30) {
                 quiz.questions = quiz.questions
