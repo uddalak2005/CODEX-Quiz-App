@@ -55,35 +55,47 @@ export default function QuizDetails() {
         try {
             const token = localStorage.getItem("adminToken");
 
-            // Clean rebuild of question objects — no _id, __v, etc.
+            // ✅ Rebuild question objects with nested option objects
             const updatedQuestions = quiz.questions.map((q) => {
                 if (q._id === editingQuestion._id) {
                     return {
-                        quesString: editData.quesString,
+                        quesString: editData.quesString?.trim() || "",
                         quesImage: q.quesImage || null,
-                        optionA: { nameString: editData.optionA },
-                        optionB: { nameString: editData.optionB },
-                        optionC: { nameString: editData.optionC },
-                        optionD: { nameString: editData.optionD },
-                        correct: editData.correct,
-                        timer: Number(editData.timer),
+                        optionA: { nameString: editData.optionA?.trim() || "" },
+                        optionB: { nameString: editData.optionB?.trim() || "" },
+                        optionC: { nameString: editData.optionC?.trim() || "" },
+                        optionD: { nameString: editData.optionD?.trim() || "" },
+                        correct: editData.correct || "A",
+                        timer: Number(editData.timer) || 15,
                     };
                 } else {
-                    // keep others in same clean format
+                    // ✅ Keep existing ones properly structured
                     return {
-                        quesString: q.quesString,
+                        quesString: q.quesString?.trim() || "",
                         quesImage: q.quesImage || null,
-                        optionA: { nameString: q.optionA?.nameString || "" },
-                        optionB: { nameString: q.optionB?.nameString || "" },
-                        optionC: { nameString: q.optionC?.nameString || "" },
-                        optionD: { nameString: q.optionD?.nameString || "" },
-                        correct: q.correct,
-                        timer: Number(q.timer),
+                        optionA:
+                            typeof q.optionA === "object"
+                                ? q.optionA
+                                : { nameString: q.optionA || "" },
+                        optionB:
+                            typeof q.optionB === "object"
+                                ? q.optionB
+                                : { nameString: q.optionB || "" },
+                        optionC:
+                            typeof q.optionC === "object"
+                                ? q.optionC
+                                : { nameString: q.optionC || "" },
+                        optionD:
+                            typeof q.optionD === "object"
+                                ? q.optionD
+                                : { nameString: q.optionD || "" },
+                        correct: q.correct || "A",
+                        timer: Number(q.timer) || 15,
                     };
                 }
             });
 
-            // Full quiz body to match backend format
+            // ✅ Full quiz payload
             const updatedQuiz = {
                 name: quiz.name,
                 target: quiz.target,
@@ -107,9 +119,17 @@ export default function QuizDetails() {
             setEditingQuestion(null);
         } catch (error) {
             console.error("❌ Error updating quiz:", error);
+            if (error.response) {
+                console.error("Backend status:", error.response.status);
+                console.error("Backend data:", error.response.data);
+            }
             alert("❌ Failed to update quiz");
         }
     };
+
+
+
+
 
 
     if (loading) {
