@@ -7,6 +7,8 @@ export default function QuizDetails() {
     const { quizId } = useParams();
     const [quiz, setQuiz] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [editingQuestion, setEditingQuestion] = useState(null);
+    const [editData, setEditData] = useState({});
 
     useEffect(() => {
         document.title = "Admin | Quiz Details";
@@ -22,6 +24,7 @@ export default function QuizDetails() {
                         headers: { Authorization: `Bearer ${token}` },
                     }
                 );
+                console.log(data.quizObj);
                 setQuiz(data.quizObj);
                 setLoading(false);
             } catch (err) {
@@ -30,6 +33,84 @@ export default function QuizDetails() {
         };
         fetchQuiz();
     }, [quizId]);
+
+    const handleEditClick = (question) => {
+        setEditingQuestion(question);
+        setEditData({
+            quesString: question.quesString,
+            optionA: question.optionA?.nameString || "",
+            optionB: question.optionB?.nameString || "",
+            optionC: question.optionC?.nameString || "",
+            optionD: question.optionD?.nameString || "",
+            correct: question.correct,
+            timer: question.timer,
+        });
+    };
+
+    const handleEditChange = (e) => {
+        setEditData({ ...editData, [e.target.name]: e.target.value });
+    };
+
+    const handleSaveChanges = async () => {
+        try {
+            const token = localStorage.getItem("adminToken");
+
+            // Clean rebuild of question objects — no _id, __v, etc.
+            const updatedQuestions = quiz.questions.map((q) => {
+                if (q._id === editingQuestion._id) {
+                    return {
+                        quesString: editData.quesString,
+                        quesImage: q.quesImage || null,
+                        optionA: { nameString: editData.optionA },
+                        optionB: { nameString: editData.optionB },
+                        optionC: { nameString: editData.optionC },
+                        optionD: { nameString: editData.optionD },
+                        correct: editData.correct,
+                        timer: Number(editData.timer),
+                    };
+                } else {
+                    // keep others in same clean format
+                    return {
+                        quesString: q.quesString,
+                        quesImage: q.quesImage || null,
+                        optionA: { nameString: q.optionA?.nameString || "" },
+                        optionB: { nameString: q.optionB?.nameString || "" },
+                        optionC: { nameString: q.optionC?.nameString || "" },
+                        optionD: { nameString: q.optionD?.nameString || "" },
+                        correct: q.correct,
+                        timer: Number(q.timer),
+                    };
+                }
+            });
+
+            // Full quiz body to match backend format
+            const updatedQuiz = {
+                name: quiz.name,
+                target: quiz.target,
+                startTime: quiz.startTime,
+                endTime: quiz.endTime,
+                questions: updatedQuestions,
+            };
+
+            console.log("Sending to backend:", updatedQuiz);
+
+            await axios.put(
+                `${import.meta.env.VITE_BACKEND_URL}/admin/updateQuiz/${quizId}`,
+                updatedQuiz,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+
+            setQuiz({ ...quiz, questions: updatedQuestions });
+            alert("✅ Quiz updated successfully!");
+            setEditingQuestion(null);
+        } catch (error) {
+            console.error("❌ Error updating quiz:", error);
+            alert("❌ Failed to update quiz");
+        }
+    };
+
 
     if (loading) {
         return (
@@ -103,18 +184,19 @@ export default function QuizDetails() {
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
                                     {participants.map((p, i) => (
-                                        <tr
-                                            key={i}
-                                            className="hover:bg-gray-50 transition"
-                                        >
+                                        <tr key={i} className="hover:bg-gray-50 transition">
                                             <td className="py-3 px-4 font-medium text-gray-800">
                                                 #{i + 1}
                                             </td>
-                                            <td className="py-3 px-4">{p.name}</td>
-                                            <td className="py-3 px-4 text-gray-600">
-                                                {p.email}
+                                            <td className="py-3 px-4">
+                                                {p.name || "Unknown"}
                                             </td>
-                                            <td className="py-3 px-4 text-center">{p.year}</td>
+                                            <td className="py-3 px-4 text-gray-600">
+                                                {p.email || "—"}
+                                            </td>
+                                            <td className="py-3 px-4 text-center">
+                                                {p.year || "—"}
+                                            </td>
                                             <td className="py-3 px-4 text-center font-semibold text-gray-900">
                                                 {p.points}
                                             </td>
@@ -195,13 +277,13 @@ export default function QuizDetails() {
                     </div>
                 </div>
 
-                {/* Questions Summary */}
+                {/* Questions Section */}
                 <div className="p-6">
                     <h2 className="text-2xl font-semibold text-gray-800 mb-4">
                         Questions & Answers
                     </h2>
 
-                    <div >
+                    <div>
                         {quiz.questions.map((q, idx) => (
                             <div
                                 key={q._id}
@@ -211,12 +293,19 @@ export default function QuizDetails() {
                                     <h3 className="font-semibold text-gray-900 text-lg">
                                         Q{idx + 1}. {q.quesString}
                                     </h3>
-                                    <span className="text-sm text-gray-500">
-                                        ⏱ {q.timer || 0}s
-                                    </span>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm text-gray-500">
+                                            ⏱ {q.timer || 0}s
+                                        </span>
+                                        <button
+                                            onClick={() => handleEditClick(q)}
+                                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                                        >
+                                            ✏️ Edit
+                                        </button>
+                                    </div>
                                 </div>
 
-                                {/* If there’s an image */}
                                 {q.quesImage && (
                                     <img
                                         src={q.quesImage}
@@ -225,37 +314,28 @@ export default function QuizDetails() {
                                     />
                                 )}
 
-                                {/* Options */}
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-                                    {["A", "B", "C", "D"].map((opt, i) => {
+                                    {["A", "B", "C", "D"].map((opt) => {
                                         const optionKey = `option${opt}`;
-                                        const optionValue = q[optionKey]?.nameString || q[optionKey];
-                                        const isCorrect = q.correctAns === opt;
-
+                                        const optionValue =
+                                            q[optionKey]?.nameString || "—";
+                                        const isCorrect = q.correct === opt;
                                         return (
                                             <div
-                                                key={i}
+                                                key={opt}
                                                 className={`px-4 py-2 rounded-lg border ${isCorrect
                                                     ? "border-green-500 bg-green-50"
                                                     : "border-gray-200 bg-white"
                                                     }`}
                                             >
                                                 <p className="text-gray-800">
-                                                    <b>{opt}.</b> {optionValue || "—"}
+                                                    <b>{opt}.</b> {optionValue}
                                                 </p>
-                                                {q[optionKey]?.image && (
-                                                    <img
-                                                        src={q[optionKey].image}
-                                                        alt={`Option ${opt}`}
-                                                        className="w-full max-h-40 object-contain rounded mt-2"
-                                                    />
-                                                )}
                                             </div>
                                         );
                                     })}
                                 </div>
 
-                                {/* Correct answer highlight */}
                                 <div className="text-sm text-green-700 font-medium">
                                     ✅ Correct Answer: {q.correct}
                                 </div>
@@ -264,6 +344,77 @@ export default function QuizDetails() {
                     </div>
                 </div>
             </div>
+
+            {/* Edit Modal */}
+            {editingQuestion && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50">
+                    <div className="bg-white rounded-2xl p-8 w-full max-w-lg shadow-lg">
+                        <h2 className="text-xl font-semibold mb-4 text-gray-800">
+                            ✏️ Edit Question
+                        </h2>
+
+                        <div className="space-y-4">
+                            <input
+                                type="text"
+                                name="quesString"
+                                value={editData.quesString}
+                                onChange={handleEditChange}
+                                className="w-full border rounded-lg px-3 py-2"
+                                placeholder="Question Text"
+                            />
+                            {["A", "B", "C", "D"].map((opt) => (
+                                <input
+                                    key={opt}
+                                    type="text"
+                                    name={`option${opt}`}
+                                    value={editData[`option${opt}`]}
+                                    onChange={handleEditChange}
+                                    className="w-full border rounded-lg px-3 py-2"
+                                    placeholder={`Option ${opt}`}
+                                />
+                            ))}
+
+                            <select
+                                name="correct"
+                                value={editData.correct}
+                                onChange={handleEditChange}
+                                className="w-full border rounded-lg px-3 py-2"
+                            >
+                                <option value="">Select Correct Answer</option>
+                                {["A", "B", "C", "D"].map((opt) => (
+                                    <option key={opt} value={opt}>
+                                        {opt}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <input
+                                type="number"
+                                name="timer"
+                                value={editData.timer}
+                                onChange={handleEditChange}
+                                className="w-full border rounded-lg px-3 py-2"
+                                placeholder="Timer (seconds)"
+                            />
+                        </div>
+
+                        <div className="flex justify-end mt-6 gap-3">
+                            <button
+                                onClick={() => setEditingQuestion(null)}
+                                className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveChanges}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                            >
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

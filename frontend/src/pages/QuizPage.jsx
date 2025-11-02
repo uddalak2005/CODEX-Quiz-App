@@ -59,10 +59,15 @@ function QuizPage() {
                 const response = await axios.get(
                     `${import.meta.env.VITE_BACKEND_URL}/quiz/getQuiz/${decodedYear}`,
                     {
-                        headers: { Authorization: `Bearer ${token}` }
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                        withCredentials: true,
+
                     }
                 );
                 setQuiz(response.data.quiz);
+                console.log(response.data.quiz)
                 setError(null);
                 localStorage.setItem("quizData", JSON.stringify(response.data.quiz));
             } catch (err) {
