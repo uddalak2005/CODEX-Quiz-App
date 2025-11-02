@@ -61,8 +61,7 @@ function QuizPage() {
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
-                        },
-                        withCredentials: true,
+                        }
 
                     }
                 );
