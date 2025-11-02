@@ -147,9 +147,9 @@ class AdminController {
 
     async getQuiz(req, res) {
         try {
-
             const { quizId } = req.params;
 
+            // Fetch quiz with relationships
             const quizDetails = await Quiz.findById(quizId)
                 .populate("user", "name email year")
                 .populate("questions")
@@ -157,46 +157,43 @@ class AdminController {
 
             if (!quizDetails) {
                 console.log("Quiz Not Found");
-                return res.status(404).json({
-                    message: "Quiz Not Found"
-                })
+                return res.status(404).json({ message: "Quiz Not Found" });
             }
 
-            for (const participant of quizDetails.participants) {
-                const result = await Result.find({ userId: participant._id });
-                quizDetails.participants
-            }
+            // Fetch all participant results in ONE query ⚡
+            const participantIds = quizDetails.participants.map(p => p._id);
+            const results = await Result.find({
+                quizId: quizDetails._id,
+                userId: { $in: participantIds }
+            });
 
-            const results = await Promise.all(
-                quizDetails.participants.map(async (participant) => {
-                    console.log(participant);
-                    const result = await Result.findOne({ userId: participant._id, quizId: quizDetails._id });
+            // Convert results array to a map for fast lookup
+            const resultMap = new Map();
+            results.forEach(r => resultMap.set(r.userId.toString(), r));
 
-                    return {
-                        name: participant.name,
-                        email: participant.email,
-                        year: participant.year,
-                        points: result?.points || 0,
-                        duration: result?.duration || 0
-                    };
-                })
-            );
+            // Combine participant + result data
+            const participantData = quizDetails.participants.map(p => {
+                const r = resultMap.get(p._id.toString());
+                return {
+                    name: p.name,
+                    email: p.email,
+                    year: p.year,
+                    points: r?.points || 0,
+                    duration: r?.duration || 0
+                };
+            });
 
-            console.log(results);
             const quizObj = quizDetails.toObject();
-            quizObj.participants = results;
+            quizObj.participants = participantData;
 
-            return res.status(200).json({
-                quizObj
-            })
+            return res.status(200).json({ quizObj });
 
         } catch (err) {
-            console.log(err.message);
-            return res.status(500).json({
-                message: err.message
-            })
+            console.error("Error fetching quiz:", err.message);
+            return res.status(500).json({ message: err.message });
         }
     }
+
 
     async deleteQuiz(req, res) {
         try {
