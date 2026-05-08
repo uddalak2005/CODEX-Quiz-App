@@ -13,6 +13,9 @@ global.mongoose = cached;
 const connectToDatabase = async () => {
     if (cached.conn) return cached.conn; // ← reuse if already connected
 
+    console.log("MONGO_URI exists:", !!process.env.MONGO_URI); // ← add this
+    console.log("MONGO_URI value:", process.env.MONGO_URI);
+
     if (!cached.promise) {
         cached.promise = mongoose.connect(MONGO_URI, {
             bufferCommands: false,
