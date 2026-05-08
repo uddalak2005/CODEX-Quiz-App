@@ -6,29 +6,37 @@ dotenv.config();
 
 const MONGO_URI = process.env.MONGO_URI;
 
-let isConnected = false;
+// Cache connection globally across warm requests
+let cached = global.mongoose || { conn: null, promise: null };
+global.mongoose = cached;
 
 const connectToDatabase = async () => {
-    if (isConnected) {
-        return;
+    if (cached.conn) return cached.conn; // ← reuse if already connected
+
+    if (!cached.promise) {
+        cached.promise = mongoose.connect(MONGO_URI, {
+            bufferCommands: false,
+            serverSelectionTimeoutMS: 10000,
+            socketTimeoutMS: 45000,
+            maxPoolSize: 10,
+        });
     }
+
     try {
-        const db = await mongoose.connect(MONGO_URI);
-        isConnected = db.connections[0].readyState;
-        console.log("Connected to MongoDB via Serverless Function");
+        cached.conn = await cached.promise;
+        console.log("Connected to MongoDB");
+        return cached.conn;
     } catch (err) {
-        console.error("Error connecting to MongoDB:", err.message);
+        cached.promise = null; // ← reset so next request retries
         throw err;
     }
 };
 
 export default async (req, res) => {
-    // Explicitly set CORS headers for Serverless functions
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
     res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
 
-    // Handle CORS preflight explicitly
     if (req.method === "OPTIONS") {
         return res.status(200).end();
     }
