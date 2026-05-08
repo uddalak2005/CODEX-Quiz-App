@@ -6,8 +6,6 @@ dotenv.config();
 
 const MONGO_URI = process.env.MONGO_URI;
 
-// VERCEL FIX: Cache the database connection across serverless function invocations
-// Global variables are retained across warm lambdas in Vercel.
 let isConnected = false;
 
 const connectToDatabase = async () => {
@@ -20,14 +18,11 @@ const connectToDatabase = async () => {
         console.log("Connected to MongoDB via Serverless Function");
     } catch (err) {
         console.error("Error connecting to MongoDB:", err.message);
+        throw err;
     }
 };
 
-// VERCEL FIX: Middleware to ensure DB connection is established before routing
-app.use(async (req, res, next) => {
+export default async (req, res) => {
     await connectToDatabase();
-    next();
-});
-
-// VERCEL FIX: Export the Express app as a default module instead of using app.listen()
-export default app;
+    return app(req, res);
+};
