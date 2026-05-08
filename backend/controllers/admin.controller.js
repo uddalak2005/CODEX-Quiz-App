@@ -195,25 +195,7 @@ class AdminController {
     }
 
 
-    async deleteQuiz(req, res) {
-        try {
-            const { quizId } = req.params;
 
-            await Question.deleteMany({ quizId: quizId });
-            await Result.deleteMany({ quizId: quizId });
-            await Quiz.deleteMany({ _id: quizId });
-
-            return res.status(200).json({
-                message: "Quiz Deleted SuccessFully"
-            })
-
-        } catch (err) {
-            console.log(err.message);
-            return res.status(500).json({
-                message: err.message
-            })
-        }
-    }
 
     async updateQuiz(req, res) {
         const optionSchema = Joi.object({
@@ -312,7 +294,7 @@ class AdminController {
             }
 
             await Question.deleteMany({ quizId: quiz._id });
-
+            await Result.deleteMany({ quizId: quiz._id }); // Prevent orphaned results
             await Quiz.findByIdAndDelete(quizId);
 
             return res.status(200).json({ message: "Quiz deleted successfully" });

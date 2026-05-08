@@ -39,7 +39,6 @@ class AuthController {
     async loginUser(req, res) {
         console.log(req.body);
         const joiSchema = Joi.object({
-            regdNo: Joi.string().required(),
             email: Joi.string().email().required(),
             year: Joi.number().valid(1, 2).required()
         });
@@ -57,13 +56,12 @@ class AuthController {
         console.log(value);
 
         const user = await User.findOne({
-            regdNo: value.regdNo,
             email: value.email,
             year: value.year
         })
 
         if (!user) {
-            return res.status(400, "User Not Found").json({
+            return res.status(400).json({
                 message: "Invalid Credentials Please Check."
             });
         }

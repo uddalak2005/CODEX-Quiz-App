@@ -100,6 +100,9 @@ function QuizPage() {
                     logout();
                 } catch (err) {
                     console.error("Error submitting quiz:", err);
+                    setError(err.response?.data?.message || "Failed to submit quiz. Please try again or contact support.");
+                    // Reset quizEnd so it doesn't show the success screen if it failed
+                    setQuizEnd(false);
                 }
             };
 
@@ -225,6 +228,7 @@ function QuizPage() {
             {currentQues < quiz.questions.length ? (
                 <div className="w-screen h-full flex justify-center items-center p-10 md:p-10">
                     <QuestionCard
+                        key={quiz.questions[currentQues]._id || currentQues}
                         question={quiz.questions[currentQues]}
                         onNext={handleNext}
                         setAnswer={setAnswer}

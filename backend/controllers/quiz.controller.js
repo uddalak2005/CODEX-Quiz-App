@@ -29,12 +29,6 @@ class QuizController {
                 return res.status(403).json({ message: "Quiz has ended." });
             }
 
-            if (quiz.questions && quiz.questions.length > 30) {
-                quiz.questions = quiz.questions
-                    .sort(() => 0.5 - Math.random())
-                    .slice(0, 30);
-            }
-
             const user = await User.findById(req.user.userId);
             if (!user) return res.status(400).json({ message: "User not found" });
 
@@ -42,21 +36,37 @@ class QuizController {
                 return res.status(400).json({ message: "Quiz Already Completed" });
             }
 
-            await User.updateOne(
-                { _id: req.user.userId },
-                {
-                    $set: {
-                        quizStatus: "started",
-                        questionsProvided: quiz.questions.map((q) => q._id),
-                    },
+            if (user.quizStatus === "started" && user.questionsProvided && user.questionsProvided.length > 0) {
+                // If user already started, give them their previous questions to avoid shuffling again
+                const providedQuestionIds = user.questionsProvided.map(id => id.toString());
+                quiz.questions = quiz.questions.filter(q => providedQuestionIds.includes(q._id.toString()));
+                
+                // Keep the exact same order as they were initially provided
+                quiz.questions.sort((a, b) => providedQuestionIds.indexOf(a._id.toString()) - providedQuestionIds.indexOf(b._id.toString()));
+            } else {
+                // Shuffle for new user
+                if (quiz.questions && quiz.questions.length > 30) {
+                    quiz.questions = quiz.questions
+                        .sort(() => 0.5 - Math.random())
+                        .slice(0, 30);
                 }
-            );
 
-            await Result.updateOne(
-                { userId: req.user.userId },
-                { $set: { start: new Date() } },
-                { new: true, upsert: true }
-            );
+                await User.updateOne(
+                    { _id: req.user.userId },
+                    {
+                        $set: {
+                            quizStatus: "started",
+                            questionsProvided: quiz.questions.map((q) => q._id),
+                        },
+                    }
+                );
+
+                await Result.updateOne(
+                    { userId: req.user.userId },
+                    { $set: { start: new Date() } },
+                    { new: true, upsert: true }
+                );
+            }
 
             return res.status(200).json({ quiz });
 

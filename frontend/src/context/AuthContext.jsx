@@ -20,10 +20,9 @@ export const AuthProvider = ({ children }) => {
         else localStorage.removeItem("token");
     }, [token]);
 
-    async function login(email, regdNo, year) {
+    async function login(email, year) {
         console.log({
             email,
-            regdNo,
             year
         });
         try {
@@ -31,7 +30,6 @@ export const AuthProvider = ({ children }) => {
                 `${import.meta.env.VITE_BACKEND_URL}/auth/login`,
                 {
                     email,
-                    regdNo,
                     year: parseInt(year)
                 }
             );

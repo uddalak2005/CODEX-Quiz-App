@@ -61,15 +61,12 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 export default function SignIn(props) {
     const [emailError, setEmailError] = React.useState(false);
     const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
-    const [passwordError, setPasswordError] = React.useState(false);
-    const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
     const [open, setOpen] = React.useState(false);
     const { login, token } = useAuth();
     const navigate = useNavigate();
 
     let [formData, setFormData] = React.useState({
-        email: '',
-        regNo: ''
+        email: ''
     })
 
     const [year, setYear] = React.useState(0);
@@ -84,7 +81,6 @@ export default function SignIn(props) {
     // Validate using component state so we can get a synchronous boolean result
     const validateInputs = () => {
         const emailVal = formData.email?.trim();
-        const regdVal = formData.regNo?.trim();
 
         let isValid = true;
 
@@ -95,15 +91,6 @@ export default function SignIn(props) {
         } else {
             setEmailError(false);
             setEmailErrorMessage('');
-        }
-
-        if (!regdVal) {
-            setPasswordError(true);
-            setPasswordErrorMessage('Enter a valid Registration Number');
-            isValid = false;
-        } else {
-            setPasswordError(false);
-            setPasswordErrorMessage('');
         }
 
         if (!year) {
@@ -122,7 +109,7 @@ export default function SignIn(props) {
         if (!isValid) return;
 
         try {
-            const res = await login(formData.email, formData.regNo, year);
+            const res = await login(formData.email, year);
 
             // login() returns an object on failure, undefined on success in the current context implementation
             if (res && res.success === false) {
@@ -195,25 +182,7 @@ export default function SignIn(props) {
                                 color={emailError ? 'error' : 'primary'}
                             />
                         </FormControl>
-                        <FormControl>
-                            <FormLabel htmlFor="regNo" ><b>Registration Number</b></FormLabel>
-                            <TextField
-                                error={passwordError}
-                                helperText={passwordErrorMessage}
-                                name="regNo"
-                                type="text"
-                                id="regNo"
-                                value={formData.regNo}
-                                onChange={handleInputChange}
-                                autoComplete="current-password"
-                                placeholder="your registration number"
-                                autoFocus
-                                required
-                                fullWidth
-                                variant="outlined"
-                                color={passwordError ? 'error' : 'primary'}
-                            />
-                        </FormControl>
+
                         <FormControl fullWidth>
                             <FormLabel htmlFor="year"><b>Year</b></FormLabel>
                             <Select
