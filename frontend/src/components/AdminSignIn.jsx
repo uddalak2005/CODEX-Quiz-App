@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import codexLogo from '../assets/codex-logo.png';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toast } from "react-toastify";
+import InlineLoader from './Loader.jsx';
 
 const Card = styled(MuiCard)(({ theme }) => ({
     display: 'flex',
@@ -61,6 +62,7 @@ export default function AdminLogin(props) {
     const [passwordError, setPasswordError] = React.useState(false);
     const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
     const [open, setOpen] = React.useState(false);
+    const [loading, setLoading] = React.useState(false);
     const { adminLogin, token } = useAuth();
     const navigate = useNavigate();
 
@@ -101,31 +103,26 @@ export default function AdminLogin(props) {
     const handleSubmit = async (event) => {
         event.preventDefault();
 
-        console.log("Form submit triggered ");
-        // use state-based validation so result is available immediately
         const isValid = validateInputs();
-
-        console.log(isValid);
         if (!isValid) return;
 
+        setLoading(true);
         try {
-            console.log(formData.email, formData.password);
             const res = await adminLogin(formData.email, formData.password);
 
-            // login() returns an object on failure, undefined on success in the current context implementation
             if (res && res.success === false) {
                 toast.error(res.message || 'Login failed. Please check your credentials.', { autoClose: 3000 });
                 return;
             }
 
-            console.log("Login Successful");
             toast.success("Login Successful!", { autoClose: 3000 });
             navigate("/admin/dashboard");
 
         } catch (err) {
-            // if login ever throws, handle it here
             console.log("login failed : ", err?.message || err);
             toast.error("Login failed. Please check your credentials.", { autoClose: 3000 });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -203,10 +200,10 @@ export default function AdminLogin(props) {
 
                         <button
                             type="submit"
-                            onClick={handleSubmit}
-                            className='bg-blue-700 p-4 rounded text-white font-bold'
+                            disabled={loading}
+                            className='bg-blue-700 p-4 rounded text-white font-bold flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed'
                         >
-                            Log in
+                            {loading ? <InlineLoader size={20} color="#fff" /> : 'Log in'}
                         </button>
 
                     </Box>

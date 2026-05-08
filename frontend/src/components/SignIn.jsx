@@ -15,6 +15,7 @@ import {
 import codexLogo from '../assets/codex-logo.png';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toast } from "react-toastify";
+import InlineLoader from './Loader.jsx';
 
 const Card = styled(MuiCard)(({ theme }) => ({
     display: 'flex',
@@ -62,6 +63,7 @@ export default function SignIn(props) {
     const [emailError, setEmailError] = React.useState(false);
     const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
     const [open, setOpen] = React.useState(false);
+    const [loading, setLoading] = React.useState(false);
     const { login, token } = useAuth();
     const navigate = useNavigate();
 
@@ -104,29 +106,26 @@ export default function SignIn(props) {
     const handleSubmit = async (event) => {
         event.preventDefault();
 
-        // use state-based validation so result is available immediately
         const isValid = validateInputs();
         if (!isValid) return;
 
+        setLoading(true);
         try {
             const res = await login(formData.email, year);
 
-            // login() returns an object on failure, undefined on success in the current context implementation
             if (res && res.success === false) {
                 toast.error(res.message || 'Login failed. Please check your credentials.', { autoClose: 3000 });
                 return;
             }
 
-            console.log("Login Successful");
             toast.success("Login Successful!", { autoClose: 3000 });
-
-            // navigate after successful login
             navigate(`/quiz/instructions/${encodeYear(year)}`);
 
         } catch (err) {
-            // if login ever throws, handle it here
             console.log("login failed : ", err?.message || err);
             toast.error("Login failed. Please check your credentials.", { autoClose: 3000 });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -202,9 +201,10 @@ export default function SignIn(props) {
 
                         <button
                             type="submit"
-                            className='bg-blue-700 p-4 rounded text-white font-bold'
+                            disabled={loading}
+                            className='bg-blue-700 p-4 rounded text-white font-bold flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed'
                         >
-                            Sign in
+                            {loading ? <InlineLoader size={20} color="#fff" /> : 'Sign in'}
                         </button>
                     </Box>
                 </Card>
