@@ -23,6 +23,16 @@ const connectToDatabase = async () => {
 };
 
 export default async (req, res) => {
-    await connectToDatabase();
-    return app(req, res);
+    // Handle CORS preflight explicitly
+    if (req.method === "OPTIONS") {
+        return res.status(200).end();
+    }
+
+    try {
+        await connectToDatabase();
+        return app(req, res);
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: "Database connection error" });
+    }
 };
