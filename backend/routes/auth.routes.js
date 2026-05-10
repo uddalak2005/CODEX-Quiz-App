@@ -3,7 +3,7 @@ import express from "express";
 
 const router = express.Router();
 
-router.post("/registerUser", authController.registerUser);
+// Public login — email only, returns assignedQuizId for auto-redirect
 router.post("/login", authController.loginUser);
 
 export default router;

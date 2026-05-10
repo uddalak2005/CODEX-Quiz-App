@@ -11,52 +11,123 @@ class AdminController {
         try {
             const { email, password } = req.body;
 
-            console.log(email, password);
-
             if (!email || !password) {
-                console.log("Email or password missing");
                 return res.status(400).json({
-                    message: "Validation ERR, either or password is missing"
-                })
+                    message: "Email and password are required."
+                });
             }
 
-            const user = await User.findOne({
-                email: email,
-                password: password
-            })
+            const user = await User.findOne({ email, password });
 
-            if (!user) {
-                console.log("Invalid email id or password");
+            if (!user || user.role !== "admin") {
                 return res.status(400).json({
                     message: "Invalid Email or password"
-                })
+                });
             }
 
-            const token = jwt.sign({
-                userId: user._id,
-                email: user.email,
-                role: "admin"
-            }, process.env.JWT_SECRET,
-                {
-                    expiresIn: "1h"
-                })
+            const token = jwt.sign(
+                { userId: user._id, email: user.email, role: "admin" },
+                process.env.JWT_SECRET,
+                { expiresIn: "8h" }
+            );
 
-            return res.status(200).json({
-                user,
-                token
-            })
+            return res.status(200).json({ user, token });
         } catch (err) {
-            console.log("Error while admin logging in");
-            return res.status(400).json({
-                message: err.message
-            })
+            return res.status(400).json({ message: err.message });
         }
     }
 
+    // ─── Create a single participant account ────────────────────────────────────
+    async createUser(req, res) {
+        const joiSchema = Joi.object({
+            name: Joi.string().required(),
+            regdNo: Joi.string().required(),
+            email: Joi.string().email().required(),
+            assignedQuizId: Joi.string().length(24).required(),
+        });
+
+        const { value, error } = joiSchema.validate(req.body);
+        if (error) return res.status(400).json({ message: error.details });
+
+        try {
+            // Check quiz exists and admin owns it
+            const quiz = await Quiz.findOne({ _id: value.assignedQuizId, user: req.user.userId });
+            if (!quiz) return res.status(404).json({ message: "Quiz not found or unauthorized." });
+
+            const newUser = await User.create({
+                name: value.name,
+                regdNo: value.regdNo,
+                email: value.email,
+                assignedQuizId: value.assignedQuizId,
+                role: "user",
+            });
+
+            // Add to quiz's allowedParticipants
+            await Quiz.findByIdAndUpdate(value.assignedQuizId, {
+                $addToSet: { allowedParticipants: newUser._id }
+            });
+
+            return res.status(201).json({ message: "User created successfully", user: newUser });
+        } catch (err) {
+            if (err.code === 11000) {
+                return res.status(400).json({ message: "A user with this regdNo or email already exists.", field: err.keyValue });
+            }
+            return res.status(500).json({ message: err.message });
+        }
+    }
+
+    // ─── Bulk create participant accounts from array ─────────────────────────────
+    async bulkCreateUsers(req, res) {
+        const userItemSchema = Joi.object({
+            name: Joi.string().required(),
+            regdNo: Joi.string().required(),
+            email: Joi.string().email().required(),
+        });
+
+        const joiSchema = Joi.object({
+            assignedQuizId: Joi.string().length(24).required(),
+            users: Joi.array().items(userItemSchema).min(1).required(),
+        });
+
+        const { value, error } = joiSchema.validate(req.body);
+        if (error) return res.status(400).json({ message: error.details });
+
+        try {
+            const quiz = await Quiz.findOne({ _id: value.assignedQuizId, user: req.user.userId });
+            if (!quiz) return res.status(404).json({ message: "Quiz not found or unauthorized." });
+
+            const results = { created: [], failed: [] };
+
+            for (const u of value.users) {
+                try {
+                    const newUser = await User.create({
+                        name: u.name,
+                        regdNo: u.regdNo,
+                        email: u.email,
+                        assignedQuizId: value.assignedQuizId,
+                        role: "user",
+                    });
+                    results.created.push({ regdNo: u.regdNo, id: newUser._id });
+                } catch (err) {
+                    results.failed.push({ regdNo: u.regdNo, reason: err.code === 11000 ? "Already exists" : err.message });
+                }
+            }
+
+            // Add all newly created users to allowedParticipants in one update
+            if (results.created.length > 0) {
+                await Quiz.findByIdAndUpdate(value.assignedQuizId, {
+                    $addToSet: { allowedParticipants: { $each: results.created.map(u => u.id) } }
+                });
+            }
+
+            return res.status(201).json({ message: "Bulk creation complete.", ...results });
+        } catch (err) {
+            return res.status(500).json({ message: err.message });
+        }
+    }
+
+    // ─── Create Quiz ─────────────────────────────────────────────────────────────
     async createQuiz(req, res) {
-
-        console.log(req.body);
-
         const optionSchema = Joi.object({
             nameString: Joi.string().allow("", null),
             image: Joi.string().allow("", null)
@@ -64,7 +135,6 @@ class AdminController {
 
         const joiSchema = Joi.object({
             name: Joi.string().required(),
-            target: Joi.number().required(),
             startTime: Joi.date().required(),
             endTime: Joi.date().greater(Joi.ref('startTime')).required(),
             questions: Joi.array().items(
@@ -83,33 +153,17 @@ class AdminController {
 
         try {
             const { value, error } = joiSchema.validate(req.body);
-
-            console.log("Validated value:", value);
-
-
-            if (error) {
-                console.log(error.details);
-                return res.status(400).json({
-                    message: error.details
-                })
-            }
-
-            const user = req.user;
-
-            console.log(user);
+            if (error) return res.status(400).json({ message: error.details });
 
             const newQuiz = await Quiz.create({
-                user: user.userId,
+                user: req.user.userId,
                 name: value.name,
-                target: value.target,
                 startTime: value.startTime,
                 endTime: value.endTime
             });
 
-            let questionIdArray = []
-
+            let questionIdArray = [];
             for (const question of value.questions) {
-                console.log(question);
                 const newQuestion = await Question.create({
                     quizId: newQuiz._id,
                     quesString: question.quesString,
@@ -120,64 +174,55 @@ class AdminController {
                     optionD: question.optionD,
                     correct: question.correct,
                     timer: question.timer
-                })
-
+                });
                 questionIdArray.push(newQuestion._id);
             }
 
-            await Quiz.findByIdAndUpdate(newQuiz._id,
-                {
-                    $set: {
-                        questions: questionIdArray
-                    }
-                }
-            );
+            await Quiz.findByIdAndUpdate(newQuiz._id, {
+                $set: { questions: questionIdArray }
+            });
 
             return res.status(201).json({
-                message: "Quiz Created successfully"
+                message: "Quiz created successfully",
+                quizId: newQuiz._id
             });
 
         } catch (err) {
-            console.log(err.message);
-            res.status(500).json({
-                message: err.message
-            })
+            return res.status(500).json({ message: err.message });
         }
     }
 
+    // ─── Get single quiz (admin view) ────────────────────────────────────────────
     async getQuiz(req, res) {
         try {
             const { quizId } = req.params;
 
-            // Fetch quiz with relationships
             const quizDetails = await Quiz.findById(quizId)
-                .populate("user", "name email year")
+                .populate("user", "name email")
                 .populate("questions")
-                .populate("participants");
+                .populate("allowedParticipants", "name email regdNo quizStatus")
+                .populate("participants", "name email regdNo");
 
             if (!quizDetails) {
-                console.log("Quiz Not Found");
                 return res.status(404).json({ message: "Quiz Not Found" });
             }
 
-            // Fetch all participant results in ONE query ⚡
+            // Fetch results for submitted participants
             const participantIds = quizDetails.participants.map(p => p._id);
             const results = await Result.find({
                 quizId: quizDetails._id,
                 userId: { $in: participantIds }
             });
 
-            // Convert results array to a map for fast lookup
             const resultMap = new Map();
             results.forEach(r => resultMap.set(r.userId.toString(), r));
 
-            // Combine participant + result data
             const participantData = quizDetails.participants.map(p => {
                 const r = resultMap.get(p._id.toString());
                 return {
                     name: p.name,
                     email: p.email,
-                    year: p.year,
+                    regdNo: p.regdNo,
                     points: r?.points || 0,
                     duration: r?.duration || 0
                 };
@@ -189,14 +234,11 @@ class AdminController {
             return res.status(200).json({ quizObj });
 
         } catch (err) {
-            console.error("Error fetching quiz:", err.message);
             return res.status(500).json({ message: err.message });
         }
     }
 
-
-
-
+    // ─── Update Quiz ─────────────────────────────────────────────────────────────
     async updateQuiz(req, res) {
         const optionSchema = Joi.object({
             nameString: Joi.string().allow("", null),
@@ -205,7 +247,6 @@ class AdminController {
 
         const joiSchema = Joi.object({
             name: Joi.string().required(),
-            target: Joi.number().required(),
             startTime: Joi.date().required(),
             endTime: Joi.date().greater(Joi.ref('startTime')).required(),
             questions: Joi.array().items(
@@ -224,32 +265,20 @@ class AdminController {
 
         try {
             const { value, error } = joiSchema.validate(req.body);
-            if (error) {
-                return res.status(400).json({ message: error.details });
-            }
+            if (error) return res.status(400).json({ message: error.details });
 
             const { quizId } = req.params;
-            const user = req.user;
-            console.log(user, quizId);
-
             const existingQuiz = await Quiz.findOne({ _id: quizId });
-
-            console.log(quizId, existingQuiz);
-
-            if (!existingQuiz) {
-                return res.status(404).json({ message: "Quiz not found or unauthorized" });
-            }
+            if (!existingQuiz) return res.status(404).json({ message: "Quiz not found or unauthorized" });
 
             existingQuiz.name = value.name;
-            existingQuiz.target = value.target;
+            existingQuiz.startTime = value.startTime;
+            existingQuiz.endTime = value.endTime;
             await existingQuiz.save();
-
 
             await Question.deleteMany({ quizId: existingQuiz._id });
 
-            let questionIdArray = []
-
-
+            let questionIdArray = [];
             for (const q of value.questions) {
                 const newQuestion = await Question.create({
                     quizId: existingQuiz._id,
@@ -262,55 +291,49 @@ class AdminController {
                     correct: q.correct,
                     timer: q.timer
                 });
-
                 questionIdArray.push(newQuestion._id);
             }
 
-            await Quiz.findByIdAndUpdate(existingQuiz._id,
-                {
-                    $set: {
-                        questions: questionIdArray
-                    }
-                }
-            );
+            await Quiz.findByIdAndUpdate(existingQuiz._id, {
+                $set: { questions: questionIdArray }
+            });
 
             return res.status(200).json({ message: "Quiz updated successfully" });
 
         } catch (err) {
-            console.error("Error updating quiz:", err.message);
-            return res.status(500).json({ message: "Internal Server Error", error: err.message });
+            return res.status(500).json({ message: err.message });
         }
     }
 
-
+    // ─── Delete Quiz ─────────────────────────────────────────────────────────────
     async deleteQuiz(req, res) {
         try {
             const { quizId } = req.params;
-            const user = req.user;
 
-            const quiz = await Quiz.findOne({ _id: quizId, user: user.userId });
-            if (!quiz) {
-                return res.status(404).json({ message: "Quiz not found or unauthorized" });
-            }
+            const quiz = await Quiz.findOne({ _id: quizId, user: req.user.userId });
+            if (!quiz) return res.status(404).json({ message: "Quiz not found or unauthorized" });
 
             await Question.deleteMany({ quizId: quiz._id });
-            await Result.deleteMany({ quizId: quiz._id }); // Prevent orphaned results
+            await Result.deleteMany({ quizId: quiz._id });
             await Quiz.findByIdAndDelete(quizId);
 
-            return res.status(200).json({ message: "Quiz deleted successfully" });
+            // Unlink all users that were assigned this quiz
+            await User.updateMany(
+                { assignedQuizId: quizId },
+                { $set: { assignedQuizId: null } }
+            );
 
+            return res.status(200).json({ message: "Quiz deleted successfully" });
         } catch (err) {
-            console.error("Error deleting quiz:", err.message);
-            return res.status(500).json({ message: "Internal Server Error", error: err.message });
+            return res.status(500).json({ message: err.message });
         }
-    };
+    }
+
+    // ─── Get all quizzes for the admin ───────────────────────────────────────────
     async getAllData(req, res) {
         try {
             const userId = req.user?.userId;
-
-            if (!userId) {
-                return res.status(401).json({ success: false, message: "Unauthorized access" });
-            }
+            if (!userId) return res.status(401).json({ success: false, message: "Unauthorized access" });
 
             const allQuizzes = await Quiz.find({ user: userId })
                 .populate("user", "name email")
@@ -321,14 +344,30 @@ class AdminController {
                 count: allQuizzes.length,
                 allQuizzes,
             });
-
         } catch (err) {
-            console.error("Error fetching quizzes:", err);
-            return res.status(500).json({
-                success: false,
-                message: "Internal Server Error",
-                error: err.message,
+            return res.status(500).json({ success: false, message: err.message });
+        }
+    }
+
+    // ─── Remove a participant from a quiz ─────────────────────────────────────────
+    async removeParticipant(req, res) {
+        try {
+            const { quizId, userId } = req.params;
+
+            const quiz = await Quiz.findOne({ _id: quizId, user: req.user.userId });
+            if (!quiz) return res.status(404).json({ message: "Quiz not found or unauthorized" });
+
+            await Quiz.findByIdAndUpdate(quizId, {
+                $pull: { allowedParticipants: userId }
             });
+
+            await User.findByIdAndUpdate(userId, {
+                $set: { assignedQuizId: null }
+            });
+
+            return res.status(200).json({ message: "Participant removed successfully" });
+        } catch (err) {
+            return res.status(500).json({ message: err.message });
         }
     }
 }

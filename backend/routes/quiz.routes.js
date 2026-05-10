@@ -4,7 +4,8 @@ import express from "express";
 
 const router = express.Router();
 
-router.get("/getQuiz/:year", verifyJWT, quizController.showQuiz);
+// :quizId replaces :year — fetches the quiz assigned to this user
+router.get("/getQuiz/:quizId", verifyJWT, quizController.showQuiz);
 router.post("/submitQuiz/:quizId", verifyJWT, quizController.submitQuiz);
 
 export default router;

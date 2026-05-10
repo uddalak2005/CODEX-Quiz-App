@@ -7,44 +7,55 @@ import joi from "joi";
 
 class QuizController {
 
+    // GET /quiz/getQuiz/:quizId
     async showQuiz(req, res) {
         try {
-            const { year } = req.params;
-            console.log("Year:", year);
+            const { quizId } = req.params;
 
-            const quiz = await Quiz.findOne({ target: year }).populate("questions");
+            const quiz = await Quiz.findById(quizId).populate("questions");
 
             if (!quiz) {
-                console.log("Quiz not found");
-                return res.status(400).json({ message: "Quiz not found" });
+                return res.status(404).json({ message: "Quiz not found" });
             }
 
+            // Time window enforcement
             const now = new Date();
-
             if (now < quiz.startTime) {
                 return res.status(403).json({ message: "Quiz has not started yet." });
             }
-
             if (now > quiz.endTime) {
                 return res.status(403).json({ message: "Quiz has ended." });
             }
 
             const user = await User.findById(req.user.userId);
-            if (!user) return res.status(400).json({ message: "User not found" });
+            if (!user) return res.status(404).json({ message: "User not found" });
+
+            // Access control: user must be in the allowedParticipants list
+            const isAllowed = quiz.allowedParticipants.some(
+                (id) => id.toString() === req.user.userId.toString()
+            );
+            if (!isAllowed) {
+                return res.status(403).json({ message: "You are not authorized to take this quiz." });
+            }
+
+            // User-specific quiz assignment guard
+            if (user.assignedQuizId?.toString() !== quizId) {
+                return res.status(403).json({ message: "This quiz is not assigned to your account." });
+            }
 
             if (user.quizStatus === "completed") {
-                return res.status(400).json({ message: "Quiz Already Completed" });
+                return res.status(400).json({ message: "You have already completed this quiz." });
             }
 
             if (user.quizStatus === "started" && user.questionsProvided && user.questionsProvided.length > 0) {
-                // If user already started, give them their previous questions to avoid shuffling again
+                // Restore the same questions in the same order (no re-shuffle on refresh)
                 const providedQuestionIds = user.questionsProvided.map(id => id.toString());
                 quiz.questions = quiz.questions.filter(q => providedQuestionIds.includes(q._id.toString()));
-                
-                // Keep the exact same order as they were initially provided
-                quiz.questions.sort((a, b) => providedQuestionIds.indexOf(a._id.toString()) - providedQuestionIds.indexOf(b._id.toString()));
+                quiz.questions.sort(
+                    (a, b) => providedQuestionIds.indexOf(a._id.toString()) - providedQuestionIds.indexOf(b._id.toString())
+                );
             } else {
-                // Shuffle for new user
+                // First time: shuffle and cap at 30
                 if (quiz.questions && quiz.questions.length > 30) {
                     quiz.questions = quiz.questions
                         .sort(() => 0.5 - Math.random())
@@ -72,30 +83,21 @@ class QuizController {
 
         } catch (err) {
             console.error("Error in showQuiz:", err);
-            return res.status(500).json({
-                message: "Internal Server Error",
-                error: err.message,
-            });
+            return res.status(500).json({ message: "Internal Server Error", error: err.message });
         }
     }
 
 
+    // POST /quiz/submitQuiz/:quizId
     async submitQuiz(req, res) {
         try {
+            const { quizId } = req.params;
             const user = req.user;
 
-            console.log(req.body);
-
-            const { quizId } = req.params;
-
             const userData = await User.findById(user.userId);
-
-            if (userData.quizStatus != "started") {
-                return res.status(400).json({
-                    message: "Already Completed for the quiz"
-                })
+            if (userData.quizStatus !== "started") {
+                return res.status(400).json({ message: "Quiz not started or already completed." });
             }
-
 
             const joiSchema = joi.object({
                 questions: joi.array().items(
@@ -107,81 +109,50 @@ class QuizController {
             });
 
             const { value, error } = joiSchema.validate(req.body);
-
-            console.log(value);
-
-            if (error) {
-                console.log(error.details);
-                return res.status(400).json({
-                    message: error.details
-                })
-            }
+            if (error) return res.status(400).json({ message: error.details });
 
             const quiz = await Quiz.findById(quizId);
-
-            if (!quiz) {
-                console.log("No Quiz Found");
-                return res.status(400).json({
-                    message: "No Quiz Found"
-                });
-            }
-
-            console.log(value)
+            if (!quiz) return res.status(404).json({ message: "Quiz not found" });
 
             await checkQuiz(user.userId, value.questions);
 
-            const result = await Result.findOne({
-                userId: req.user.userId
-            })
-
+            const result = await Result.findOne({ userId: req.user.userId });
             const startTime = result.start;
 
             await Result.updateOne(
                 { userId: req.user.userId },
                 {
                     $set: {
-                        quizId: quizId,
+                        quizId,
                         end: new Date(),
                         duration: new Date() - startTime
                     }
                 }
-            )
-
-            await Quiz.findByIdAndUpdate(
-                quizId,
-                {
-                    //For unique participants
-                    $addToSet: { participants: user.userId }
-                }
             );
+
+            await Quiz.findByIdAndUpdate(quizId, {
+                $addToSet: { participants: user.userId }
+            });
+
             await User.findByIdAndUpdate(
                 user.userId,
                 {
                     $set: {
-                        questionsAttended: value.questions.map(q => {
-                            return {
-                                quesId: new mongoose.Types.ObjectId(q.quesId),
-                                selected: q.selected
-                            }
-                        }),
+                        questionsAttended: value.questions.map(q => ({
+                            quesId: new mongoose.Types.ObjectId(q.quesId),
+                            selected: q.selected
+                        })),
                         quizStatus: "completed"
                     }
                 },
                 { new: true }
             );
 
-
-
-
-            return res.status(201).json({
-                message: "Quiz Submitted Successfully"
-            })
+            return res.status(201).json({ message: "Quiz Submitted Successfully" });
 
         } catch (err) {
-            console.log(err.message);
-            return res.status(500).json({
-                message: err.message
-            })
+            console.error(err.message);
+            return res.status(500).json({ message: err.message });
         }
     }
 }

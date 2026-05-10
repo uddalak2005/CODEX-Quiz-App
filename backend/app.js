@@ -18,7 +18,12 @@ app.use("/admin", adminRouter);
 app.use("/quiz", quizRouter);
 
 app.get("/", (req, res) => {
-    res.send("CODEX Backend");
+    res.json({
+        status: "ok",
+        message: "CODEX Backend",
+        timestamp: new Date().toISOString()
+    });
 })
+
 
 export default app;

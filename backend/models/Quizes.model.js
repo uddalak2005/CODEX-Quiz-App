@@ -10,12 +10,6 @@ const quizSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    target: {
-        type: Number,
-        enum: [1, 2],
-        required: true,
-        unique: true
-    },
     createdOn: {
         type: Date,
         default: Date.now()
@@ -30,7 +24,12 @@ const quizSchema = new mongoose.Schema({
             ref: "Question"
         }
     ],
-
+    // Users explicitly allowed to take this quiz (replaces target year)
+    allowedParticipants: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "user"
+    }],
+    // Users who have actually submitted
     participants: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "user"

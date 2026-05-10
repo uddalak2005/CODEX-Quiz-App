@@ -15,10 +15,11 @@ const userSchema = new mongoose.Schema({
         enum: ['user', 'admin'],
         default: 'user'
     },
-    year: {
-        type: Number,
-        enum: [0, 1, 2],
-        required: true
+    // Replaces the old `year` field — admin assigns a specific quiz at account creation
+    assignedQuizId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "quiz",
+        default: null
     },
     email: {
         type: String,

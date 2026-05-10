@@ -4,45 +4,12 @@ import jwt from "jsonwebtoken";
 
 class AuthController {
 
-    async registerUser(req, res) {
-        try {
-            const joiSchema = Joi.object({
-                name: Joi.string().required(),
-                regdNo: Joi.string().required(),
-                email: Joi.string().email().required(),
-                year: Joi.number().required()
-            });
-
-            const { value, error } = joiSchema.validate(req.body);
-            if (error) {
-                return res.status(400).json({ message: error.details });
-            }
-
-            const newUser = await User.create(value);
-            return res.status(201).json({ message: "New User Created Successfully", user: newUser });
-        } catch (err) {
-            if (err.code === 11000) {
-                // MongoDB duplicate key error
-                return res.status(400).json({
-                    message: "User already exists",
-                    field: err.keyValue
-                });
-            }
-
-            console.error("❌ Unexpected error:", err);
-            return res.status(500).json({ message: "Internal Server Error" });
-        }
-    }
-
-
-
     async loginUser(req, res) {
         console.log(req.body);
+
         const joiSchema = Joi.object({
             email: Joi.string().email().required(),
-            year: Joi.number().valid(1, 2).required()
         });
-
 
         const { value, error } = joiSchema.validate(req.body);
 
@@ -53,29 +20,36 @@ class AuthController {
             });
         }
 
-        console.log(value);
-
-        const user = await User.findOne({
-            email: value.email,
-            year: value.year
-        })
+        const user = await User.findOne({ email: value.email });
 
         if (!user) {
             return res.status(400).json({
-                message: "Invalid Credentials Please Check."
+                message: "Invalid Credentials. Please check your email."
             });
         }
 
-        const token = jwt.sign({
-            userId: user._id,
-            email: user.email,
-            role: user.role
-        }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const token = jwt.sign(
+            {
+                userId: user._id,
+                email: user.email,
+                role: user.role
+            },
+            process.env.JWT_SECRET,
+            { expiresIn: '3h' }
+        );
 
         return res.status(200).json({
-            user,
-            token: token,
-        })
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                regdNo: user.regdNo,
+                role: user.role,
+                assignedQuizId: user.assignedQuizId,
+                quizStatus: user.quizStatus,
+            },
+            token,
+        });
     }
 }
 
