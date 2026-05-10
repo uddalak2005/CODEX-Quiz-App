@@ -112,7 +112,7 @@ export default function AdminDashboard() {
                                                 </span>
                                             </div>
                                             <p className="text-xs text-gray-400">
-                                                {new Date(quiz.startTime).toLocaleString()} → {new Date(quiz.endTime).toLocaleString()}
+                                                {new Date(quiz.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} → {new Date(quiz.endTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} (IST)
                                             </p>
                                         </div>
                                         <span className="text-xs text-gray-400">{new Date(quiz.createdOn).toLocaleDateString()}</span>

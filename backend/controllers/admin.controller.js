@@ -256,7 +256,17 @@ class AdminController {
         const groups = await Group.find({ _id: { $in: newGroupIds }, createdBy: adminUserId });
         const memberIds = [...new Set(groups.flatMap(g => g.members.map(m => m.toString())))];
         if (memberIds.length > 0) {
-            await User.updateMany({ _id: { $in: memberIds } }, { $set: { assignedQuizId: quizId } });
+            await User.updateMany(
+                { _id: { $in: memberIds } },
+                { 
+                    $set: { 
+                        assignedQuizId: quizId,
+                        quizStatus: "not_started",
+                        questionsProvided: [],
+                        questionsAttended: []
+                    } 
+                }
+            );
         }
 
         quiz.assignedGroups = newGroupIds;

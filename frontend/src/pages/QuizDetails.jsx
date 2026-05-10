@@ -23,6 +23,7 @@ export default function QuizDetails() {
     const [allGroups, setAllGroups] = useState([]);
     const [savingGroups, setSavingGroups] = useState(false);
     const [selectedGroups, setSelectedGroups] = useState([]);
+    const [isUpdatingInfo, setIsUpdatingInfo] = useState(false);
 
     useEffect(() => {
         document.title = "Admin | Quiz Details";
@@ -44,8 +45,8 @@ export default function QuizDetails() {
             setQuiz(q);
             setInfoData({
                 name: q.name,
-                startTime: new Date(q.startTime).toISOString().slice(0, 16),
-                endTime: new Date(q.endTime).toISOString().slice(0, 16)
+                startTime: new Date(new Date(q.startTime).getTime() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 16),
+                endTime: new Date(new Date(q.endTime).getTime() + 5.5 * 60 * 60 * 1000).toISOString().slice(0, 16)
             });
             setSelectedGroups((q.assignedGroups || []).map(g => g._id));
             setAllGroups(groupsRes.data.groups || []);
@@ -63,10 +64,13 @@ export default function QuizDetails() {
     // ── QUIZ INFO UPDATES ──────────────────────────────────────────────────
 
     const handleSaveInfo = async () => {
+        setIsUpdatingInfo(true);
         try {
             const token = localStorage.getItem("adminToken");
             const updatedPayload = {
                 ...infoData,
+                startTime: infoData.startTime ? new Date(infoData.startTime + "+05:30") : null,
+                endTime: infoData.endTime ? new Date(infoData.endTime + "+05:30") : null,
                 questions: quiz.questions.map(q => ({
                     quesString: q.quesString,
                     quesImage: q.quesImage,
@@ -279,7 +283,7 @@ export default function QuizDetails() {
                             </div>
                         </div>
                         <p className="text-sm text-gray-500 mt-1">
-                            {new Date(quiz.startTime).toLocaleString()} — {new Date(quiz.endTime).toLocaleString()}
+                            {new Date(quiz.startTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} — {new Date(quiz.endTime).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} (IST)
                         </p>
                     </div>
                     <div className="flex items-center gap-6 text-sm">
@@ -449,8 +453,19 @@ export default function QuizDetails() {
                             </div>
                         </div>
                         <div className="flex gap-3 mt-8">
-                            <button onClick={() => setIsEditingInfo(false)} className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-600 transition">Cancel</button>
-                            <button onClick={handleSaveInfo} className="flex-1 py-3 bg-blue-700 hover:bg-blue-800 rounded-xl font-bold text-white transition">Save</button>
+                            <button onClick={() => setIsEditingInfo(false)} className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-600 transition disabled:opacity-50" disabled={isUpdatingInfo}>Cancel</button>
+                            <button 
+                                onClick={handleSaveInfo} 
+                                className="flex-1 py-3 bg-blue-700 hover:bg-blue-800 rounded-xl font-bold text-white transition flex items-center justify-center gap-2 disabled:opacity-70"
+                                disabled={isUpdatingInfo}
+                            >
+                                {isUpdatingInfo ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                        <span>Saving...</span>
+                                    </>
+                                ) : "Save Changes"}
+                            </button>
                         </div>
                     </div>
                 </div>

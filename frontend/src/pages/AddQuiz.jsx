@@ -79,9 +79,14 @@ export default function AddQuiz() {
         setSubmitting(true);
         try {
             const token = localStorage.getItem("adminToken");
+            const payload = {
+                ...quizData,
+                startTime: quizData.startTime ? new Date(quizData.startTime + "+05:30") : null,
+                endTime: quizData.endTime ? new Date(quizData.endTime + "+05:30") : null
+            };
             await axios.post(
                 `${import.meta.env.VITE_BACKEND_URL}/admin/createQuiz`,
-                quizData,
+                payload,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             toast.success("✅ Quiz Created Successfully!");
@@ -216,9 +221,22 @@ export default function AddQuiz() {
                         </button>
                     </div>
 
-                    <button type="submit" disabled={submitting}
-                        className="w-full bg-black text-white py-3 rounded-lg text-lg font-medium hover:bg-gray-800 transition disabled:opacity-60">
-                        {submitting ? "Creating..." : "🚀 Create Quiz"}
+                    <button 
+                        type="submit" 
+                        disabled={submitting}
+                        className="w-full bg-black hover:bg-gray-800 text-white py-4 rounded-xl text-lg font-bold transition-all shadow-xl shadow-gray-200 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                        {submitting ? (
+                            <>
+                                <div className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                                <span>Creating Quiz...</span>
+                            </>
+                        ) : (
+                            <>
+                                <span>🚀</span>
+                                <span>Create Quiz</span>
+                            </>
+                        )}
                     </button>
                 </form>
             </div>
