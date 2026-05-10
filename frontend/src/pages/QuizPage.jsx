@@ -18,17 +18,31 @@ function QuizPage() {
 
     const [quiz, setQuiz] = useState(() => {
         const savedQuiz = localStorage.getItem("quizData");
-        return savedQuiz ? JSON.parse(savedQuiz) : null;
+        if (savedQuiz) {
+            const parsed = JSON.parse(savedQuiz);
+            if (parsed._id === quizId) return parsed;
+        }
+        return null;
     });
 
     const { logout } = useAuth();
 
     const [currentQues, setCurrentQues] = useState(() => {
+        const savedQuiz = localStorage.getItem("quizData");
+        if (savedQuiz) {
+            const parsed = JSON.parse(savedQuiz);
+            if (parsed._id !== quizId) return 0;
+        }
         const savedCurrentQues = localStorage.getItem("quizCurrentQues");
         return savedCurrentQues ? parseInt(savedCurrentQues) : 0;
     });
 
     const [answer, setAnswer] = useState(() => {
+        const savedQuiz = localStorage.getItem("quizData");
+        if (savedQuiz) {
+            const parsed = JSON.parse(savedQuiz);
+            if (parsed._id !== quizId) return { questions: [] };
+        }
         const savedAnswers = localStorage.getItem("quizAnswers");
         return savedAnswers ? JSON.parse(savedAnswers) : { questions: [] };
     });
@@ -95,13 +109,13 @@ function QuizPage() {
     // Auto-submit on tab switch or window blur
     useEffect(() => {
         const handleVisibilityChange = () => {
-            if (document.hidden && !quizEnd) {
+            if (document.hidden && !quizEnd && quiz) {
                 handleSubmit();
             }
         };
 
         const handleBlur = () => {
-            if (!quizEnd) {
+            if (!quizEnd && quiz) {
                 handleSubmit();
             }
         };

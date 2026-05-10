@@ -43,6 +43,13 @@ export const AuthProvider = ({ children }) => {
                 setToken(data.token);
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("userName", data.user.name);
+
+                // Clear stale quiz state if user hasn't started or already completed
+                if (data.user.quizStatus === "not_started" || data.user.quizStatus === "completed") {
+                    localStorage.removeItem("quizData");
+                    localStorage.removeItem("quizAnswers");
+                    localStorage.removeItem("quizCurrentQues");
+                }
             }
 
             setUser(data.user);

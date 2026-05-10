@@ -34,18 +34,18 @@ const InstructionPage = () => {
             >
                 {/* Title */}
                 <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
-                    Welcome to the Quiz Portal
+                    Trivia Night by CODEX X DELL : ELEVATE
                 </h1>
 
                 {/* Info section */}
                 <div className="flex justify-center gap-6 text-gray-700 mb-6">
                     <div className="flex items-center gap-2">
                         <Clock className="w-5 h-5 text-blue-500" />
-                        <span>20 minutes</span>
+                        <span>5 minutes</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <HelpCircle className="w-5 h-5 text-green-500" />
-                        <span>30 questions</span>
+                        <span>20 questions</span>
                     </div>
                 </div>
 
@@ -57,8 +57,8 @@ const InstructionPage = () => {
                     </h2>
                     <ul className="list-disc list-inside text-gray-700 space-y-2">
                         <li>Once you start, you cannot pause or revisit previous questions.</li>
-                        <li>Each question is timed — answer carefully before moving on.</li>
-                        <li>Do not switch tabs or minimize the window — quiz may auto-submit.</li>
+                        <li>Each question is timed - answer carefully before moving on.</li>
+                        <li>Do not switch tabs or minimize the window - quiz may auto-submit.</li>
                         <li>You can refresh, but closing the tab will end your quiz.</li>
                         <li>Your progress is auto-saved after each answer.</li>
                         <li>Ensure a stable internet connection before starting.</li>
