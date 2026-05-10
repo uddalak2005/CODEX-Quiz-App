@@ -1,50 +1,29 @@
 import mongoose from "mongoose";
 
+
 const userSchema = new mongoose.Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    regdNo: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    role: {
-        type: String,
-        enum: ['user', 'admin'],
-        default: 'user'
-    },
-    // Replaces the old `year` field — admin assigns a specific quiz at account creation
+    name: { type: String, required: true },
+    regdNo: { type: String, required: true, unique: true },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    email: { type: String },
+    password: { type: String },
+
+
     assignedQuizId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "quiz",
         default: null
     },
-    email: {
-        type: String,
-    },
-    password: {
-        type: String,
-    },
-    questionsProvided: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Question"
-    }],
+
+    // ── Participant-only fields (never written to for admin accounts) ──────────
+    questionsProvided: [{ type: mongoose.Schema.Types.ObjectId, ref: "Question" }],
     questionsAttended: [{
-        quesId: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Question"
-        },
-        selected: {
-            type: String,
-            enum: ["A", "B", "C", "D"]
-        }
+        quesId: { type: mongoose.Schema.Types.ObjectId, ref: "Question" },
+        selected: { type: String, enum: ["A", "B", "C", "D"] }
     }],
     quizStatus: {
-        enum: ["completed", "not_started", "started"],
         type: String,
-        required: true,
+        enum: ["completed", "not_started", "started"],
         default: "not_started"
     },
 });

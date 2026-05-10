@@ -30,16 +30,8 @@ class QuizController {
             const user = await User.findById(req.user.userId);
             if (!user) return res.status(404).json({ message: "User not found" });
 
-            // Access control: user must be in the allowedParticipants list
-            const isAllowed = quiz.allowedParticipants.some(
-                (id) => id.toString() === req.user.userId.toString()
-            );
-            if (!isAllowed) {
-                return res.status(403).json({ message: "You are not authorized to take this quiz." });
-            }
-
-            // User-specific quiz assignment guard
-            if (user.assignedQuizId?.toString() !== quizId) {
+            // Access control: assignedQuizId is set when admin links user's group to this quiz
+            if (!user.assignedQuizId || user.assignedQuizId.toString() !== quizId) {
                 return res.status(403).json({ message: "This quiz is not assigned to your account." });
             }
 

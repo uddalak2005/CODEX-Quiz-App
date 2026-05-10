@@ -7,10 +7,10 @@ import { useEffect } from "react";
 
 const InstructionPage = () => {
     const navigate = useNavigate();
-    const { year } = useParams();
+    const { quizId } = useParams();
 
     const handleStart = () => {
-        navigate(`/quiz/${year}`);
+        navigate(`/quiz/${quizId}`);
     };
 
     useEffect(() => {
@@ -45,7 +45,7 @@ const InstructionPage = () => {
                     </div>
                     <div className="flex items-center gap-2">
                         <HelpCircle className="w-5 h-5 text-green-500" />
-                        <span>10 questions</span>
+                        <span>30 questions</span>
                     </div>
                 </div>
 

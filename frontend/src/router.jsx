@@ -6,6 +6,8 @@ import AdminPage from "./pages/AdminPage.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import QuizDetails from "./pages/QuizDetails.jsx";
 import AddQuiz from "./pages/AddQuiz.jsx";
+import Groups from "./pages/Groups.jsx";
+import GroupDetails from "./pages/GroupDetails.jsx";
 import { UserProtectedRoute, AdminProtectedRoute } from "./components/ProtectedRoute.jsx";
 import ErrorPage from "./pages/Error.jsx";
 
@@ -15,7 +17,8 @@ const router = createBrowserRouter([
         element: <App />,
     },
     {
-        path: "/quiz/:year",
+        // :quizId is the MongoDB ObjectId of the assigned quiz
+        path: "/quiz/:quizId",
         element: (
             <UserProtectedRoute>
                 <QuizPage />
@@ -23,7 +26,7 @@ const router = createBrowserRouter([
         ),
     },
     {
-        path: "/quiz/instructions/:year",
+        path: "/quiz/instructions/:quizId",
         element: (
             <UserProtectedRoute>
                 <InstructionPage />
@@ -59,9 +62,16 @@ const router = createBrowserRouter([
         ),
     },
     {
+        path: "/admin/groups",
+        element: (<AdminProtectedRoute><Groups /></AdminProtectedRoute>),
+    },
+    {
+        path: "/admin/groups/:groupId",
+        element: (<AdminProtectedRoute><GroupDetails /></AdminProtectedRoute>),
+    },
+    {
         path: "*",
         element: <ErrorPage />
-
     }
 ]);
 

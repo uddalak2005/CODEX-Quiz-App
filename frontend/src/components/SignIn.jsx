@@ -8,10 +8,6 @@ import Stack from '@mui/material/Stack';
 import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
-import {
-    Select,
-    MenuItem,
-} from '@mui/material'
 import codexLogo from '../assets/codex-logo.png';
 import { useAuth } from '../context/AuthContext.jsx';
 import { toast } from "react-toastify";
@@ -62,94 +58,63 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
 export default function SignIn(props) {
     const [emailError, setEmailError] = React.useState(false);
     const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
-    const [open, setOpen] = React.useState(false);
     const [loading, setLoading] = React.useState(false);
-    const { login, token } = useAuth();
+    const { login } = useAuth();
     const navigate = useNavigate();
 
-    let [formData, setFormData] = React.useState({
-        email: ''
-    })
+    const [email, setEmail] = React.useState('');
 
-    const [year, setYear] = React.useState(0);
-
-
-
-    function encodeYear(year) {
-        return btoa(year.toString());
-    }
-
-
-    // Validate using component state so we can get a synchronous boolean result
     const validateInputs = () => {
-        const emailVal = formData.email?.trim();
-
-        let isValid = true;
-
-        if (!emailVal || !/\S+@\S+\.\S+/.test(emailVal)) {
+        const val = email.trim();
+        if (!val || !/\S+@\S+\.\S+/.test(val)) {
             setEmailError(true);
             setEmailErrorMessage('Please enter a valid email address.');
-            isValid = false;
-        } else {
-            setEmailError(false);
-            setEmailErrorMessage('');
+            return false;
         }
-
-        if (!year) {
-            // keep year validation simple (you can surface a UI error if desired)
-            isValid = false;
-        }
-
-        return isValid;
+        setEmailError(false);
+        setEmailErrorMessage('');
+        return true;
     };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-
-        const isValid = validateInputs();
-        if (!isValid) return;
+        if (!validateInputs()) return;
 
         setLoading(true);
         try {
-            const res = await login(formData.email, year);
+            const res = await login(email.trim());
 
-            if (res && res.success === false) {
+            if (!res.success) {
                 toast.error(res.message || 'Login failed. Please check your credentials.', { autoClose: 3000 });
                 return;
             }
 
-            toast.success("Login Successful!", { autoClose: 3000 });
-            navigate(`/quiz/instructions/${encodeYear(year)}`);
+            if (!res.assignedQuizId) {
+                toast.error("No quiz has been assigned to your account yet. Please contact the admin.", { autoClose: 5000 });
+                return;
+            }
+
+            toast.success("Login Successful!", { autoClose: 2000 });
+            // Auto-redirect to the quiz assigned to this specific user
+            navigate(`/quiz/instructions/${res.assignedQuizId}`);
 
         } catch (err) {
-            console.log("login failed : ", err?.message || err);
-            toast.error("Login failed. Please check your credentials.", { autoClose: 3000 });
+            toast.error("Login failed. Please try again.", { autoClose: 3000 });
         } finally {
             setLoading(false);
         }
     };
 
-    const handleInputChange = (event) => {
-        setFormData((prev) => {
-            prev[event.target.name] = event.target.value;
-            return {
-                ...prev
-            }
-        })
-    }
-
-
-
     return (
         <div {...props}>
             <CssBaseline enableColorScheme />
             <SignInContainer direction="column" justifyContent="space-between">
-
                 <div sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
                 <Card variant="outlined">
                     <img
                         src={codexLogo}
                         className='h-10 w-40 mb-4'
+                        alt="CODEX Logo"
                     />
                     <Box
                         component="form"
@@ -170,8 +135,8 @@ export default function SignIn(props) {
                                 id="email"
                                 type="email"
                                 name="email"
-                                value={formData.email}
-                                onChange={handleInputChange}
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
                                 placeholder="your@email.com"
                                 autoComplete="email"
                                 autoFocus
@@ -181,23 +146,6 @@ export default function SignIn(props) {
                                 color={emailError ? 'error' : 'primary'}
                             />
                         </FormControl>
-
-                        <FormControl fullWidth>
-                            <FormLabel htmlFor="year"><b>Year</b></FormLabel>
-                            <Select
-                                id="year"
-                                name="year"
-                                value={year}
-                                onChange={(e) => setYear(Number(e.target.value))}
-                                displayEmpty
-                                required
-                            >
-                                <MenuItem value="" disabled>Select your year</MenuItem>
-                                <MenuItem value={1}>1st Year</MenuItem>
-                                <MenuItem value={2}>2nd Year</MenuItem>
-                            </Select>
-                        </FormControl>
-
 
                         <button
                             type="submit"
@@ -209,6 +157,6 @@ export default function SignIn(props) {
                     </Box>
                 </Card>
             </SignInContainer>
-        </div >
+        </div>
     );
 }

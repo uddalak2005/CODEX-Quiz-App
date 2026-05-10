@@ -8,15 +8,11 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 function QuizPage() {
 
-
     useEffect(() => {
         document.title = "Quiz";
     }, []);
 
-
-
-    const { year } = useParams();
-    const decodedYear = atob(year);
+    const { quizId } = useParams(); // now a real MongoDB ObjectId
     const token = localStorage.getItem("token");
     const userName = localStorage.getItem("userName");
 
@@ -41,15 +37,7 @@ function QuizPage() {
     const [quizEnd, setQuizEnd] = useState(false);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        if (quiz && answer.questions?.length > 0) {
-            console.log("Restored previous answers:", answer);
-        }
-    }, [quiz]);
-
-
-
-    // To Fetch Quiz
+    // Fetch quiz using quizId directly
     useEffect(() => {
         if (quiz) return;
 
@@ -57,16 +45,14 @@ function QuizPage() {
             try {
                 setLoading(true);
                 const response = await axios.get(
-                    `${import.meta.env.VITE_BACKEND_URL}/quiz/getQuiz/${decodedYear}`,
+                    `${import.meta.env.VITE_BACKEND_URL}/quiz/getQuiz/${quizId}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
                         }
-
                     }
                 );
                 setQuiz(response.data.quiz);
-                console.log(response.data.quiz)
                 setError(null);
                 localStorage.setItem("quizData", JSON.stringify(response.data.quiz));
             } catch (err) {
@@ -78,16 +64,13 @@ function QuizPage() {
         };
 
         fetchQuiz();
-    }, [decodedYear, token]);
+    }, [quizId, token]);
 
 
-    // To Submit the quiz
+    // Submit the quiz
     useEffect(() => {
         if (quizEnd && quiz) {
             const submitQuiz = async () => {
-
-                console.log(answer);
-
                 try {
                     const response = await axios.post(
                         `${import.meta.env.VITE_BACKEND_URL}/quiz/submitQuiz/${quiz._id}`,
@@ -101,7 +84,6 @@ function QuizPage() {
                 } catch (err) {
                     console.error("Error submitting quiz:", err);
                     setError(err.response?.data?.message || "Failed to submit quiz. Please try again or contact support.");
-                    // Reset quizEnd so it doesn't show the success screen if it failed
                     setQuizEnd(false);
                 }
             };
@@ -110,26 +92,22 @@ function QuizPage() {
         }
     }, [quizEnd]);
 
-    // To Prevent minimize and Tab Switch
+    // Auto-submit on tab switch or window blur
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden && !quizEnd) {
-                console.log("User switched tab or minimized — auto submitting...");
                 handleSubmit();
             }
         };
 
         const handleBlur = () => {
             if (!quizEnd) {
-                console.log("User switched app/window — auto submitting...");
                 handleSubmit();
             }
         };
 
-        // Add event listeners
         document.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("blur", handleBlur);
-
 
         return () => {
             document.removeEventListener("visibilitychange", handleVisibilityChange);
@@ -137,27 +115,22 @@ function QuizPage() {
         };
     }, [quizEnd, quiz, answer]);
 
-
-
+    // Auto-submit when all questions answered
     useEffect(() => {
         if (!quiz || quizEnd) return;
-
         if (currentQues >= quiz.questions.length) {
-            console.log("All questions answered — auto submitting quiz...");
             handleSubmit();
         }
     }, [currentQues, quiz, quizEnd]);
 
 
     function handleNext() {
-        setCurrentQues((prev) => {
-            return prev + 1
-        });
+        setCurrentQues((prev) => prev + 1);
     }
 
     useEffect(() => {
-        if (!quiz) return; // ensure quiz loaded
-        if (answer.questions?.length === 0) return; // skip initial empty state
+        if (!quiz) return;
+        if (answer.questions?.length === 0) return;
         localStorage.setItem("quizAnswers", JSON.stringify(answer));
     }, [answer, quiz]);
 
@@ -165,10 +138,7 @@ function QuizPage() {
         localStorage.setItem("quizCurrentQues", currentQues);
     }, [currentQues]);
 
-
-
     function handleSubmit() {
-        console.log("User answers:", answer);
         setQuizEnd(true);
     }
 
@@ -183,10 +153,8 @@ function QuizPage() {
                     <p className="text-3xl font-bold text-gray-800 text-center">{error}</p>
                 </div>
             </>
-
         );
     }
-
 
     if (loading || !quiz) {
         return (
@@ -195,7 +163,6 @@ function QuizPage() {
             </div>
         );
     }
-
 
     if (quizEnd) {
         return (
@@ -240,7 +207,6 @@ function QuizPage() {
                     <CircularIndeterminate />
                 </div>
             )}
-
         </>
     );
 }

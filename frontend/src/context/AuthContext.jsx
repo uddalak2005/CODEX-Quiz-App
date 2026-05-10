@@ -2,12 +2,14 @@ import { createContext, useContext, useState } from "react";
 import axios from "axios";
 import { useEffect } from "react";
 
-
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
     const [token, setToken] = useState(() => localStorage.getItem("token"));
-    const [user, setUser] = useState(() => localStorage.getItem("user"));
+    const [user, setUser] = useState(() => {
+        const stored = localStorage.getItem("user");
+        return stored ? JSON.parse(stored) : null;
+    });
     const [adminToken, setAdminToken] = useState(localStorage.getItem("adminToken"));
 
     useEffect(() => {
@@ -20,18 +22,20 @@ export const AuthProvider = ({ children }) => {
         else localStorage.removeItem("token");
     }, [token]);
 
-    async function login(email, year) {
-        console.log({
-            email,
-            year
-        });
+    useEffect(() => {
+        if (user) localStorage.setItem("user", JSON.stringify(user));
+        else localStorage.removeItem("user");
+    }, [user]);
+
+    /**
+     * Login with email only — backend identifies the user and returns assignedQuizId.
+     * Returns { success: true, assignedQuizId } or { success: false, message }.
+     */
+    async function login(email) {
         try {
             const res = await axios.post(
                 `${import.meta.env.VITE_BACKEND_URL}/auth/login`,
-                {
-                    email,
-                    year: parseInt(year)
-                }
+                { email }
             );
 
             const data = res.data;
@@ -40,50 +44,36 @@ export const AuthProvider = ({ children }) => {
                 localStorage.setItem("token", data.token);
                 localStorage.setItem("userName", data.user.name);
             }
-            console.log(data);
+
             setUser(data.user);
+            return { success: true, assignedQuizId: data.user.assignedQuizId };
 
         } catch (err) {
-            console.log(err.message);
-
             if (err.response) {
-                console.log("Backend responded with:", err.response.data);
                 return { success: false, message: err.response.data.message };
-            } else {
-                console.log("Network or server error");
-                return { success: false, message: "Server error. Please try again later." };
             }
+            return { success: false, message: "Server error. Please try again later." };
         }
     }
 
     async function adminLogin(email, password) {
-        console.log(email, password);
         try {
-            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/admin/login`,
-                {
-                    email,
-                    password
-                }
-            );
+            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/admin/login`, {
+                email,
+                password
+            });
             const data = res.data;
             if (data.token) {
                 setAdminToken(data.token);
-                localStorage.setItem("adminToken", token);
+                localStorage.setItem("adminToken", data.token);
                 localStorage.setItem("userName", data.user.name);
             }
-            console.log(data);
             setUser(data.user);
-
         } catch (err) {
-            console.log(err.message);
-
             if (err.response) {
-                console.log("Backend responded with:", err.response.data);
                 return { success: false, message: err.response.data.message };
-            } else {
-                console.log("Network or server error");
-                return { success: false, message: "Server error. Please try again later." };
             }
+            return { success: false, message: "Server error. Please try again later." };
         }
     }
 
@@ -91,13 +81,25 @@ export const AuthProvider = ({ children }) => {
         setToken(null);
         setUser(null);
         localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        localStorage.removeItem("userName");
+        localStorage.removeItem("quizData");
+        localStorage.removeItem("quizAnswers");
+        localStorage.removeItem("quizCurrentQues");
     }
 
     return (
-        <AuthContext.Provider value={{ user, token, login, adminLogin, logout, isAuthenticate: token ? true : false }}>
+        <AuthContext.Provider value={{
+            user,
+            token,
+            login,
+            adminLogin,
+            logout,
+            isAuthenticate: !!token
+        }}>
             {children}
         </AuthContext.Provider>
-    )
+    );
 };
 
 export const useAuth = () => useContext(AuthContext);
