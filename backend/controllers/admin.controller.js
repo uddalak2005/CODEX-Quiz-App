@@ -7,6 +7,9 @@ import jwt from "jsonwebtoken";
 import Joi from "joi";
 
 class AdminController {
+    AdminController() {
+        this._assignGroupsToQuiz = this._assignGroupsToQuiz.bind(this);
+    }
 
     // ── AUTH ──────────────────────────────────────────────────────────────────
     async adminLogin(req, res) {
@@ -112,11 +115,11 @@ class AdminController {
 
             for (const u of users) {
                 const { error, value: validatedUser } = userSchema.validate(u, { stripUnknown: true });
-                
+
                 if (error) {
-                    results.failed.push({ 
-                        data: u, 
-                        reason: error.details[0].message 
+                    results.failed.push({
+                        data: u,
+                        reason: error.details[0].message
                     });
                     continue;
                 }
@@ -127,9 +130,9 @@ class AdminController {
                     let user = await User.findOne({ $or: [{ email: userData.email }, { regdNo: userData.regdNo }] });
                     if (!user) {
                         user = await User.create({
-                            name: userData.name, 
-                            regdNo: userData.regdNo, 
-                            email: userData.email, 
+                            name: userData.name,
+                            regdNo: userData.regdNo,
+                            email: userData.email,
                             role: "user",
                             assignedQuizId: linkedQuiz?._id || null,
                         });
@@ -144,9 +147,9 @@ class AdminController {
                         group.members.push(user._id);
                     }
                 } catch (err) {
-                    results.failed.push({ 
-                        data: u, 
-                        reason: err.code === 11000 ? "Duplicate entry (Email or RegdNo)" : err.message 
+                    results.failed.push({
+                        data: u,
+                        reason: err.code === 11000 ? "Duplicate entry (Email or RegdNo)" : err.message
                     });
                 }
             }
@@ -258,13 +261,13 @@ class AdminController {
         if (memberIds.length > 0) {
             await User.updateMany(
                 { _id: { $in: memberIds } },
-                { 
-                    $set: { 
+                {
+                    $set: {
                         assignedQuizId: quizId,
                         quizStatus: "not_started",
                         questionsProvided: [],
                         questionsAttended: []
-                    } 
+                    }
                 }
             );
         }
