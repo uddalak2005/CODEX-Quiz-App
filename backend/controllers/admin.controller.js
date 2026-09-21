@@ -7,7 +7,8 @@ import jwt from "jsonwebtoken";
 import Joi from "joi";
 
 class AdminController {
-    AdminController() {
+    constructor() {
+        this.createQuiz = this.createQuiz.bind(this);
         this._assignGroupsToQuiz = this._assignGroupsToQuiz.bind(this);
     }
 
