@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import codexLogo from "../assets/codex-logo.png";
+import { getBackend } from "../api/loadBalancer";
 
 export default function AdminDashboard() {
     const [quizzes, setQuizzes] = useState([]);
@@ -15,7 +16,8 @@ export default function AdminDashboard() {
     useEffect(() => {
         const fetchQuizzes = async () => {
             try {
-                const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/admin/getAllData`, {
+                const backend = getBackend();
+                const res = await axios.get(`${backend}/admin/getAllData`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
                 setQuizzes(res.data.allQuizzes || []);

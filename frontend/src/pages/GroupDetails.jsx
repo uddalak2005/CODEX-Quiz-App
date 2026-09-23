@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import codexLogo from "../assets/codex-logo.png";
+import { getBackend } from "../api/loadBalancer";
 
 // ── CSV parser (no external dep) ──────────────────────────────────────────────
 function parseCSV(text) {
@@ -23,11 +24,11 @@ function parseCSV(text) {
 
     const data = lines.slice(1).map(line => {
         const vals = line.split(",").map(v => v.trim().replace(/^["']|["']$/g, ""));
-        return headers.reduce((obj, h, i) => { 
+        return headers.reduce((obj, h, i) => {
             if (["name", "regdNo", "email"].includes(h)) {
-                obj[h] = vals[i] || ""; 
+                obj[h] = vals[i] || "";
             }
-            return obj; 
+            return obj;
         }, {});
     }).filter(r => r.name || r.regdNo || r.email);
 
@@ -71,7 +72,8 @@ export default function GroupDetails() {
 
     async function fetchGroup() {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/admin/groups/${groupId}`, {
+            const backend = getBackend();
+            const res = await axios.get(`${backend}/admin/groups/${groupId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setGroup(res.data.group);
@@ -91,8 +93,9 @@ export default function GroupDetails() {
         setSubmitting(true);
         setFailedEntries([]);
         try {
+            const backend = getBackend();
             const res = await axios.post(
-                `${import.meta.env.VITE_BACKEND_URL}/admin/groups/${groupId}/addUsers`,
+                `${backend}/admin/groups/${groupId}/addUsers`,
                 { users },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -102,7 +105,7 @@ export default function GroupDetails() {
             } else {
                 toast.success(`✅ ${created.length} new accounts created.`);
             }
-            
+
             setManualRows([{ name: "", regdNo: "", email: "" }]);
             setCsvPreview([]);
             fetchGroup();
@@ -118,7 +121,7 @@ export default function GroupDetails() {
             const d = f.data;
             return `"${d.name || ""}","${d.regdNo || ""}","${d.email || ""}","${f.reason}"`;
         }).join("\n");
-        
+
         const blob = new Blob([headers + rows], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
@@ -149,8 +152,9 @@ export default function GroupDetails() {
     async function handleRemoveMember(userId) {
         if (!window.confirm("Remove this member from the group?")) return;
         try {
+            const backend = getBackend();
             await axios.delete(
-                `${import.meta.env.VITE_BACKEND_URL}/admin/groups/${groupId}/users/${userId}`,
+                `${backend}/admin/groups/${groupId}/users/${userId}`,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             toast.success("Member removed from group.");

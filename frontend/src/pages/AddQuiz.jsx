@@ -3,6 +3,7 @@ import axios from "axios";
 import codexLogo from "../assets/codex-logo.png";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { getBackend } from "../api/loadBalancer";
 
 export default function AddQuiz() {
 
@@ -27,9 +28,10 @@ export default function AddQuiz() {
 
     useEffect(() => {
         const token = localStorage.getItem("adminToken");
-        axios.get(`${import.meta.env.VITE_BACKEND_URL}/admin/groups`, {
+        const backend = getBackend();
+        axios.get(`${backend}/admin/groups`, {
             headers: { Authorization: `Bearer ${token}` }
-        }).then(res => setAvailableGroups(res.data.groups || [])).catch(() => {});
+        }).then(res => setAvailableGroups(res.data.groups || [])).catch(() => { });
     }, []);
 
     const handleQuizChange = (e) => {
@@ -79,13 +81,14 @@ export default function AddQuiz() {
         setSubmitting(true);
         try {
             const token = localStorage.getItem("adminToken");
+            const backend = getBackend();
             const payload = {
                 ...quizData,
                 startTime: quizData.startTime ? new Date(quizData.startTime + "+05:30") : null,
                 endTime: quizData.endTime ? new Date(quizData.endTime + "+05:30") : null
             };
             await axios.post(
-                `${import.meta.env.VITE_BACKEND_URL}/admin/createQuiz`,
+                `${backend}/admin/createQuiz`,
                 payload,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -208,7 +211,7 @@ export default function AddQuiz() {
                                         <select value={q.timer}
                                             onChange={e => handleQuestionChange(index, "timer", parseInt(e.target.value))}
                                             className="border border-gray-300 rounded-lg px-3 py-2" required>
-                                            {[15, 30, 60, 90].map(t => <option key={t} value={t}>{t}s</option>)}
+                                            {[15, 20, 30, 60, 90].map(t => <option key={t} value={t}>{t}s</option>)}
                                         </select>
                                     </div>
                                 </div>
@@ -221,8 +224,8 @@ export default function AddQuiz() {
                         </button>
                     </div>
 
-                    <button 
-                        type="submit" 
+                    <button
+                        type="submit"
                         disabled={submitting}
                         className="w-full bg-black hover:bg-gray-800 text-white py-4 rounded-xl text-lg font-bold transition-all shadow-xl shadow-gray-200 flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
                     >

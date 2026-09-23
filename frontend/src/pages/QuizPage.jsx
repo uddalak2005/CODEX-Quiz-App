@@ -5,6 +5,7 @@ import CircularIndeterminate from "../components/Loader.jsx";
 import QuestionCard from "../components/QuestionCard.jsx";
 import codexLogo from '../assets/codex-logo.png';
 import { useAuth } from "../context/AuthContext.jsx";
+import { getBackend } from "../api/loadBalancer";
 
 function QuizPage() {
 
@@ -58,8 +59,9 @@ function QuizPage() {
         const fetchQuiz = async () => {
             try {
                 setLoading(true);
+                const backend = getBackend();
                 const response = await axios.get(
-                    `${import.meta.env.VITE_BACKEND_URL}/quiz/getQuiz/${quizId}`,
+                    `${backend}/quiz/getQuiz/${quizId}`,
                     {
                         headers: {
                             Authorization: `Bearer ${token}`,
@@ -86,8 +88,9 @@ function QuizPage() {
         if (quizEnd && quiz) {
             const submitQuiz = async () => {
                 try {
+                    const backend = getBackend();
                     const response = await axios.post(
-                        `${import.meta.env.VITE_BACKEND_URL}/quiz/submitQuiz/${quiz._id}`,
+                        `${backend}/quiz/submitQuiz/${quiz._id}`,
                         answer,
                         {
                             headers: { Authorization: `Bearer ${token}` },

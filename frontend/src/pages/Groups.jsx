@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import codexLogo from "../assets/codex-logo.png";
+import { getBackend } from "../api/loadBalancer";
 
 export default function Groups() {
     const [groups, setGroups] = useState([]);
@@ -21,7 +22,8 @@ export default function Groups() {
 
     async function fetchGroups() {
         try {
-            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/admin/groups`, {
+            const backend = getBackend();
+            const res = await axios.get(`${backend}/admin/groups`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setGroups(res.data.groups || []);
@@ -36,7 +38,8 @@ export default function Groups() {
         e.preventDefault();
         setCreating(true);
         try {
-            await axios.post(`${import.meta.env.VITE_BACKEND_URL}/admin/groups`, form, {
+            const backend = getBackend();
+            await axios.post(`${backend}/admin/groups`, form, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setForm({ name: "", description: "" });
@@ -57,7 +60,8 @@ export default function Groups() {
         );
         if (!confirmed) return;
         try {
-            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/admin/groups/${groupId}`, {
+            const backend = getBackend();
+            await axios.delete(`${backend}/admin/groups/${groupId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast.success("Group deleted.");
@@ -142,7 +146,7 @@ export default function Groups() {
                                     <h3 className="font-semibold text-gray-900 group-hover:text-blue-700 transition leading-tight">
                                         {group.name}
                                     </h3>
-                                    <button 
+                                    <button
                                         onClick={e => handleDelete(group._id, e)}
                                         className="p-1.5 bg-red-50 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-all duration-200 border border-red-100"
                                         title="Delete Group"

@@ -3,13 +3,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import codexLogo from "../assets/codex-logo.png";
+import { getBackend } from "../api/loadBalancer";
 
 export default function QuizDetails() {
     const { quizId } = useParams();
     const navigate = useNavigate();
     const [quiz, setQuiz] = useState(null);
     const [loading, setLoading] = useState(true);
-    
+
     // States for Editing Quiz Info (Name, Time)
     const [isEditingInfo, setIsEditingInfo] = useState(false);
     const [infoData, setInfoData] = useState({ name: "", startTime: "", endTime: "" });
@@ -18,7 +19,7 @@ export default function QuizDetails() {
     const [editingQuestion, setEditingQuestion] = useState(null);
     const [editData, setEditData] = useState({});
     const [isSavingQuestions, setIsSavingQuestions] = useState(false);
-    
+
     // Group Assignment States
     const [allGroups, setAllGroups] = useState([]);
     const [savingGroups, setSavingGroups] = useState(false);
@@ -31,16 +32,17 @@ export default function QuizDetails() {
 
     const fetchData = async () => {
         const token = localStorage.getItem("adminToken");
+        const backend = getBackend();
         try {
             const [quizRes, groupsRes] = await Promise.all([
-                axios.get(`${import.meta.env.VITE_BACKEND_URL}/admin/getQuiz/${quizId}`, {
+                axios.get(`${backend}/admin/getQuiz/${quizId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 }),
-                axios.get(`${import.meta.env.VITE_BACKEND_URL}/admin/groups`, {
+                axios.get(`${backend}/admin/groups`, {
                     headers: { Authorization: `Bearer ${token}` }
                 })
             ]);
-            
+
             const q = quizRes.data.quizObj;
             setQuiz(q);
             setInfoData({
@@ -67,6 +69,7 @@ export default function QuizDetails() {
         setIsUpdatingInfo(true);
         try {
             const token = localStorage.getItem("adminToken");
+            const backend = getBackend();
             const updatedPayload = {
                 ...infoData,
                 startTime: infoData.startTime ? new Date(infoData.startTime + "+05:30") : null,
@@ -83,7 +86,7 @@ export default function QuizDetails() {
                 }))
             };
             await axios.put(
-                `${import.meta.env.VITE_BACKEND_URL}/admin/updateQuiz/${quizId}`,
+                `${backend}/admin/updateQuiz/${quizId}`,
                 updatedPayload,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -118,6 +121,7 @@ export default function QuizDetails() {
         setIsSavingQuestions(true);
         try {
             const token = localStorage.getItem("adminToken");
+            const backend = getBackend();
             const payload = {
                 name: quiz.name,
                 startTime: quiz.startTime,
@@ -134,7 +138,7 @@ export default function QuizDetails() {
                 }))
             };
             await axios.put(
-                `${import.meta.env.VITE_BACKEND_URL}/admin/updateQuiz/${quizId}`,
+                `${backend}/admin/updateQuiz/${quizId}`,
                 payload,
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -188,9 +192,9 @@ export default function QuizDetails() {
     // ── GROUP UPDATES ───────────────────────────────────────────────────────
 
     const toggleGroup = (groupId) => {
-        setSelectedGroups(prev => 
-            prev.includes(groupId) 
-                ? prev.filter(id => id !== groupId) 
+        setSelectedGroups(prev =>
+            prev.includes(groupId)
+                ? prev.filter(id => id !== groupId)
                 : [...prev, groupId]
         );
     };
@@ -200,10 +204,11 @@ export default function QuizDetails() {
             "⚠️ DANGER: DELETE QUIZ?\n\nThis will permanently delete:\n- All Questions\n- All Participant Results\n- All Quiz Settings\n\nThis action CANNOT be undone. Are you absolutely sure?"
         );
         if (!confirmed) return;
-        
+
         try {
             const token = localStorage.getItem("adminToken");
-            await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/admin/deleteQuiz/${quizId}`, {
+            const backend = getBackend();
+            await axios.delete(`${backend}/admin/deleteQuiz/${quizId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast.success("Quiz deleted successfully.");
@@ -221,8 +226,9 @@ export default function QuizDetails() {
         setSavingGroups(true);
         try {
             const token = localStorage.getItem("adminToken");
+            const backend = getBackend();
             await axios.put(
-                `${import.meta.env.VITE_BACKEND_URL}/admin/quiz/${quizId}/groups`,
+                `${backend}/admin/quiz/${quizId}/groups`,
                 { groupIds: selectedGroups },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -264,16 +270,16 @@ export default function QuizDetails() {
                         <div className="flex items-center gap-3">
                             <h1 className="text-3xl font-bold text-gray-900">{quiz.name}</h1>
                             <div className="flex gap-1">
-                                <button 
-                                    onClick={() => setIsEditingInfo(true)} 
+                                <button
+                                    onClick={() => setIsEditingInfo(true)}
                                     className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-600 text-blue-600 hover:text-white border border-blue-200 rounded-lg transition-all duration-200 font-medium text-xs shadow-sm"
                                     title="Edit Quiz Info"
                                 >
                                     <span>✏️</span>
                                     <span>Edit Info</span>
                                 </button>
-                                <button 
-                                    onClick={handleDeleteQuiz} 
+                                <button
+                                    onClick={handleDeleteQuiz}
                                     className="flex items-center gap-2 px-3 py-1.5 bg-red-50 hover:bg-red-600 text-red-600 hover:text-white border border-red-200 rounded-lg transition-all duration-200 font-medium text-xs shadow-sm"
                                     title="Delete Quiz"
                                 >
@@ -338,7 +344,7 @@ export default function QuizDetails() {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl font-bold text-gray-800">Questions</h2>
-                                <button 
+                                <button
                                     onClick={addQuestion}
                                     disabled={isSavingQuestions}
                                     className="px-4 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-bold hover:bg-gray-800 transition disabled:opacity-50"
@@ -346,7 +352,7 @@ export default function QuizDetails() {
                                     {isSavingQuestions ? "Saving..." : "+ Add Question"}
                                 </button>
                             </div>
-                            
+
                             {quiz.questions.map((q, idx) => (
                                 <div key={q._id || idx} className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm group">
                                     <div className="flex justify-between items-start mb-4">
@@ -359,7 +365,7 @@ export default function QuizDetails() {
                                             <button onClick={() => deleteQuestion(idx)} className="text-xs text-red-500 font-bold px-2 py-1 hover:bg-red-50 rounded">Delete</button>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                                         {["A", "B", "C", "D"].map(opt => (
                                             <div key={opt} className={`px-4 py-2.5 rounded-xl border text-sm flex items-center gap-2 ${q.correct === opt ? "border-green-500 bg-green-50 text-green-700 font-medium" : "border-gray-100 bg-white text-gray-600"}`}>
@@ -384,17 +390,16 @@ export default function QuizDetails() {
                                 <h2 className="text-lg font-bold text-gray-800">Assign Groups</h2>
                                 <span className="text-xs text-gray-400">{selectedGroups.length} assigned</span>
                             </div>
-                            
+
                             <div className="space-y-2 mb-6 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                                 {allGroups.map(group => (
-                                    <button 
-                                        key={group._id} 
+                                    <button
+                                        key={group._id}
                                         onClick={() => toggleGroup(group._id)}
-                                        className={`w-full text-left p-3 rounded-xl border transition flex items-center justify-between ${
-                                            selectedGroups.includes(group._id)
-                                                ? "border-blue-500 bg-blue-50"
-                                                : "border-gray-100 hover:border-gray-200 bg-white"
-                                        }`}
+                                        className={`w-full text-left p-3 rounded-xl border transition flex items-center justify-between ${selectedGroups.includes(group._id)
+                                            ? "border-blue-500 bg-blue-50"
+                                            : "border-gray-100 hover:border-gray-200 bg-white"
+                                            }`}
                                     >
                                         <div>
                                             <p className={`text-sm font-bold ${selectedGroups.includes(group._id) ? "text-blue-700" : "text-gray-800"}`}>{group.name}</p>
@@ -415,17 +420,17 @@ export default function QuizDetails() {
                                 )}
                             </div>
 
-                            <button 
-                                onClick={handleSaveGroups} 
+                            <button
+                                onClick={handleSaveGroups}
                                 disabled={savingGroups || selectedGroups.length === 0}
                                 className="w-full py-3 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-200 text-white rounded-xl font-bold transition shadow-lg shadow-blue-100 disabled:shadow-none"
                             >
                                 {savingGroups ? "Saving..." : "Save Assignments"}
                             </button>
                         </div>
-                        
+
                         <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm text-center">
-                             <button onClick={() => navigate(`/quiz/instructions/${quizId}`)} className="w-full py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium transition text-sm">
+                            <button onClick={() => navigate(`/quiz/instructions/${quizId}`)} className="w-full py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 font-medium transition text-sm">
                                 Preview as Student
                             </button>
                         </div>
@@ -441,21 +446,21 @@ export default function QuizDetails() {
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Quiz Name</label>
-                                <input type="text" value={infoData.name} onChange={e => setInfoData({...infoData, name: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                <input type="text" value={infoData.name} onChange={e => setInfoData({ ...infoData, name: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Start Time</label>
-                                <input type="datetime-local" value={infoData.startTime} onChange={e => setInfoData({...infoData, startTime: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                <input type="datetime-local" value={infoData.startTime} onChange={e => setInfoData({ ...infoData, startTime: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-400 uppercase mb-1">End Time</label>
-                                <input type="datetime-local" value={infoData.endTime} onChange={e => setInfoData({...infoData, endTime: e.target.value})} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+                                <input type="datetime-local" value={infoData.endTime} onChange={e => setInfoData({ ...infoData, endTime: e.target.value })} className="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none" />
                             </div>
                         </div>
                         <div className="flex gap-3 mt-8">
                             <button onClick={() => setIsEditingInfo(false)} className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 rounded-xl font-bold text-gray-600 transition disabled:opacity-50" disabled={isUpdatingInfo}>Cancel</button>
-                            <button 
-                                onClick={handleSaveInfo} 
+                            <button
+                                onClick={handleSaveInfo}
                                 className="flex-1 py-3 bg-blue-700 hover:bg-blue-800 rounded-xl font-bold text-white transition flex items-center justify-center gap-2 disabled:opacity-70"
                                 disabled={isUpdatingInfo}
                             >
@@ -503,7 +508,7 @@ export default function QuizDetails() {
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Timer (s)</label>
                                     <select name="timer" value={editData.timer} onChange={handleEditChange} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white">
-                                        {[15, 30, 60, 90].map(t => <option key={t} value={t}>{t}s</option>)}
+                                        {[15, 20, 30, 60, 90].map(t => <option key={t} value={t}>{t}s</option>)}
                                     </select>
                                 </div>
                             </div>

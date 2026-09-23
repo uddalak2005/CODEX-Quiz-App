@@ -1,6 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import axios from "axios";
 import { useEffect } from "react";
+import { getBackend } from "../api/loadBalancer";
 
 const AuthContext = createContext();
 
@@ -33,8 +34,9 @@ export const AuthProvider = ({ children }) => {
      */
     async function login(email) {
         try {
+            const backend = getBackend();
             const res = await axios.post(
-                `${import.meta.env.VITE_BACKEND_URL}/auth/login`,
+                `${backend}/auth/login`,
                 { email }
             );
 
@@ -65,7 +67,8 @@ export const AuthProvider = ({ children }) => {
 
     async function adminLogin(email, password) {
         try {
-            const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/admin/login`, {
+            const backend = getBackend();
+            const res = await axios.post(`${backend}/admin/login`, {
                 email,
                 password
             });
