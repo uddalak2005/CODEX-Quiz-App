@@ -205,7 +205,7 @@ class AdminController {
                 optionC: optionSchema.required(),
                 optionD: optionSchema.required(),
                 correct: Joi.string().valid("A", "B", "C", "D").required(),
-                timer: Joi.number().valid(15, 30, 60, 90).required()
+                timer: Joi.number().valid(15, 20, 30, 60, 90).required()
             })).required()
         });
 
@@ -340,7 +340,7 @@ class AdminController {
                 optionA: optionSchema.required(), optionB: optionSchema.required(),
                 optionC: optionSchema.required(), optionD: optionSchema.required(),
                 correct: Joi.string().valid("A", "B", "C", "D").required(),
-                timer: Joi.number().valid(15, 30, 60, 90).required()
+                timer: Joi.number().valid(15, 20, 30, 60, 90).required()
             })).required()
         });
 
