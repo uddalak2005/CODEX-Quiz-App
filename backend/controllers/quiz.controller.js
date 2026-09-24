@@ -7,6 +7,38 @@ import joi from "joi";
 
 class QuizController {
 
+    // GET /quiz/getQuizInfo/:quizId
+    async showQuizInfo(req, res) {
+        try {
+            const { quizId } = req.params;
+            const quiz = await Quiz.findById(quizId).select("name questions startTime endTime");
+
+            if (!quiz) {
+                return res.status(404).json({ message: "Quiz not found" });
+            }
+
+            const user = await User.findById(req.user.userId).select("assignedQuizId");
+            if (!user) return res.status(404).json({ message: "User not found" });
+
+            if (!user.assignedQuizId || user.assignedQuizId.toString() !== quizId) {
+                return res.status(403).json({ message: "This quiz is not assigned to your account." });
+            }
+
+            return res.status(200).json({
+                quiz: {
+                    _id: quiz._id,
+                    name: quiz.name,
+                    questionCount: quiz.questions.length,
+                    startTime: quiz.startTime,
+                    endTime: quiz.endTime,
+                },
+            });
+        } catch (err) {
+            console.error("Error in showQuizInfo:", err);
+            return res.status(500).json({ message: "Internal Server Error" });
+        }
+    }
+
     // GET /quiz/getQuiz/:quizId
     async showQuiz(req, res) {
         try {
