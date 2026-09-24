@@ -1,55 +1,82 @@
-import React from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AlertCircle, Clock, HelpCircle } from "lucide-react";
+import axios from "axios";
 import codexLogo from "../assets/codex-logo.png";
-import { useEffect } from "react";
+import CircularIndeterminate from "../components/Loader.jsx";
+import { getBackend } from "../api/loadBalancer";
 
 const InstructionPage = () => {
     const navigate = useNavigate();
     const { quizId } = useParams();
-
-    const handleStart = () => {
-        navigate(`/quiz/${quizId}`);
-    };
+    const token = localStorage.getItem("token");
+    const [quiz, setQuiz] = useState(null);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         document.title = "Instructions";
     }, []);
 
+    useEffect(() => {
+        const fetchQuizInfo = async () => {
+            try {
+                const response = await axios.get(
+                    `${getBackend()}/quiz/getQuizInfo/${quizId}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                setQuiz(response.data.quiz);
+            } catch (err) {
+                setError(err.response?.data?.message || "Failed to load quiz information.");
+            }
+        };
+
+        fetchQuizInfo();
+    }, [quizId, token]);
+
+    const handleStart = () => {
+        navigate(`/quiz/${quizId}`);
+    };
+
+    if (error) {
+        return <div className="min-h-screen flex items-center justify-center p-6 text-xl font-semibold text-gray-800">{error}</div>;
+    }
+
+    if (!quiz) {
+        return <div className="min-h-screen flex items-center justify-center"><CircularIndeterminate /></div>;
+    }
+
+    const durationMinutes = Math.max(
+        1,
+        Math.round((new Date(quiz.endTime) - new Date(quiz.startTime)) / 60000)
+    );
+
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
-            {/* Header */}
             <div className="w-full flex justify-between items-center mb-8">
                 <img src={codexLogo} alt="CODEX Logo" className="h-8 md:h-12" />
                 <p className="text-xl md:text-2xl font-bold text-gray-600">Quiz Instructions</p>
             </div>
 
-            {/* Instructions Card */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
                 className="max-w-3xl w-full bg-white rounded-2xl shadow-xl p-6 md:p-8 mt-20"
             >
-                {/* Title */}
-                <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
-                    Trivia Night by CODEX X DELL : ELEVATE
-                </h1>
+                <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">{quiz.name}</h1>
 
-                {/* Info section */}
                 <div className="flex justify-center gap-6 text-gray-700 mb-6">
                     <div className="flex items-center gap-2">
                         <Clock className="w-5 h-5 text-blue-500" />
-                        <span>5 minutes</span>
+                        <span>{durationMinutes} minutes</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <HelpCircle className="w-5 h-5 text-green-500" />
-                        <span>20 questions</span>
+                        <span>{quiz.questionCount} questions</span>
                     </div>
                 </div>
 
-                {/* Instructions */}
                 <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-6">
                     <h2 className="font-semibold text-lg text-gray-800 mb-3 flex items-center gap-2">
                         <AlertCircle className="text-yellow-500 w-5 h-5" />
@@ -65,7 +92,6 @@ const InstructionPage = () => {
                     </ul>
                 </div>
 
-                {/* Start Button */}
                 <div className="flex justify-center mt-6">
                     <button
                         onClick={handleStart}
