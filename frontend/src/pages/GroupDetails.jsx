@@ -99,11 +99,15 @@ export default function GroupDetails() {
                 { users },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
+
+            const { failed, created, alreadyExisted } = res.data;
             if (failed?.length) {
                 setFailedEntries(failed);
                 toast.warning(`⚠️ ${failed.length} entries failed. Check the download option.`);
             } else {
-                toast.success(`✅ ${created.length} new accounts created.`);
+                const createdCount = created?.length || 0;
+                const existingCount = alreadyExisted?.length || 0;
+                toast.success(`✅ ${createdCount} new account${createdCount === 1 ? "" : "s"} created, ${existingCount} existing account${existingCount === 1 ? "" : "s"} added.`);
             }
 
             setManualRows([{ name: "", regdNo: "", email: "" }]);
